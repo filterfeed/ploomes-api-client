@@ -577,13 +577,30 @@ class PloomesClient:
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
-    def post_interaction_record(self, contact_id, content, date, typeId=7):
+    def get_interaction_records(self, _filter=None):
+        response = []
+        url = f"{self.host}/InteractionRecords?"
+        if _filter:
+            url += f"$filter={_filter}&"
+        url += "$expand=OtherProperties&$top=300&$orderby=Id+desc"
+        while url:
+            r = requests.get(url, headers=self.headers, timeout=5)
+            data = r.json()
+            if data.get('value'):
+                response += data["value"]
+            url = data.get("@odata.nextLink")
+        return response
+
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def post_interaction_record(self, contact_id, content, date, type_id=7):
         payload = json.dumps(
             {
                 "ContactId": contact_id,
                 "Content": content,
                 "Date": date,
-                "TypeId": typeId
+                "TypeId": type_id
             }
         )
         r = requests.post(
