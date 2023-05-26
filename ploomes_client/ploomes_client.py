@@ -591,6 +591,20 @@ class PloomesClient:
             url = data.get("@odata.nextLink")
         return response
 
+
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def patch_interaction_record(self,interaction_id, payload):
+        response = []
+        payload = json.dumps(payload)
+        url = f"{self.host}/InteractionRecords({interaction_id})"
+        r = requests.patch(url, headers=self.headers, data=payload, timeout=5)
+        data = r.json()
+        if data.get('value'):
+            response += data["value"]
+        return response
+
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
