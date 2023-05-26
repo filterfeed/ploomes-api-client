@@ -1,7 +1,6 @@
-"""
 # Ploomes API Python Client
 
-This package provides a simple Python client for the [Ploomes API](https://www.ploomes.com/).
+This package provides a simple Python client for the [Ploomes API](https://developers.ploomes.com/).
 
 ## Installation
 
@@ -50,5 +49,3 @@ response = ploomes.create_contact(
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-"""
