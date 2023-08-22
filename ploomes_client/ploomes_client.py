@@ -7,7 +7,12 @@ import json
 from ratelimit import limits, sleep_and_retry
 import pandas as pd
 import random
-from typing import Dict
+from typing import Dict, Optional, List, Union
+import logging
+from requests.exceptions import RequestException
+
+logger = logging.getLogger(__name__)
+
 
 """https://learn.microsoft.com/en-us/dynamics-nav/using-filter-expressions-in-odata-uris"""
 
@@ -16,15 +21,13 @@ MAX_REQUESTS_PER_SECOND = 2
 
 
 class PloomesClient:
-
     def __init__(self, api_key) -> None:
         self.host = "https://public-api2.ploomes.com"
         self.api_key = api_key
-        self.headers = {"User-Key": api_key,
-                        "Content-Type": "application/json"}
+        self.headers = {"User-Key": api_key, "Content-Type": "application/json"}
 
     def retry(func):
-        MAX_RETRIES = 1  # maximum number of retries
+        MAX_RETRIES = 3  # maximum number of retries
         TIMEOUT = 5  # time to wait before retrying (in seconds)
 
         def wrapper(*args, **kwargs):
@@ -34,7 +37,7 @@ class PloomesClient:
                 try:
                     # execute the function and return its result
                     return func(*args, **kwargs)
-                except Exception as e:
+                except Exception as e:  # Catch all exceptions
                     print(func, *args, e)
                     retries += 1
                     # calculate the timeout value using the min() function
@@ -57,6 +60,68 @@ class PloomesClient:
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def get_contact_products(self, filter=None):
+        if filter:
+            filter = f"?$filter={filter}"
+        r = requests.get(f"{self.host}/Contacts@Products{filter}", headers=self.headers)
+        response = r.json().get("value")
+        return response
+
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def update_contact_product(self, id_, fields):
+        payload = json.dumps(fields)
+        r = requests.patch(
+            f"{self.host}/Contacts@Products({id_})?$expand=OtherProperties",
+            data=payload,
+            headers=self.headers,
+        )
+        response = r.json()
+        return response
+
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def post_contact_product(self, fields):
+        payload = json.dumps(fields)
+        r = requests.post(
+            f"{self.host}/Contacts@Products", data=payload, headers=self.headers
+        )
+        response = r.json()
+        return response
+
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def get_products(
+        self,
+        _filter: Optional[str] = None,
+        top: int = 1000,
+        orderby: Optional[str] = None,
+    ) -> List[Dict]:
+        url = f"{self.host}/Products?$expand=OtherProperties"
+
+        if _filter:
+            url += f"&$filter={_filter}"
+
+        if top:
+            url += f"&$top={top}"
+
+        if orderby:
+            url += f"&$orderby={orderby}"
+        response = []
+        while url:
+            r = requests.get(url, headers=self.headers, timeout=5)
+            data = r.json()
+            if data.get("value"):
+                response += data["value"]
+            url = data.get("@odata.nextLink")
+        return response
+
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def get_user_info(self, filter=None):
         url = f"{self.host}/Users?"
         if filter:
@@ -65,26 +130,26 @@ class PloomesClient:
         response = r.json().get("value")
         return response
 
-
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
-    def create_contact(self,
-                       Name,
-                       Email,
-                       City,
-                       State,
-                       StreetAddress,
-                       Neighborhood,
-                       ZipCode,
-                       Register,
-                       StreetAddressNumber,
-                       Phones,
-                       OtherProperties,
-                       TypeId=0,
-                       OriginId=0,
-                       CompanyId=4001214,
-                       ):
+    def create_contact(
+        self,
+        Name,
+        Email,
+        City,
+        State,
+        StreetAddress,
+        Neighborhood,
+        ZipCode,
+        Register,
+        StreetAddressNumber,
+        Phones,
+        OtherProperties,
+        TypeId=0,
+        OriginId=0,
+        CompanyId=4001214,
+    ):
         """
         This function creates a contact in a CRM system by sending a POST request to an API endpoint.
         The function requires 7 mandatory parameters: Name, Neighborhood, ZipCode, Register, StreetAddressNumber, Phones, OtherProperties
@@ -121,7 +186,9 @@ class PloomesClient:
             }
         )
         r = requests.post(
-            f"{self.host}/Contacts?$expand=Phones,OtherProperties", data=payload, headers=self.headers
+            f"{self.host}/Contacts?$expand=Phones,OtherProperties",
+            data=payload,
+            headers=self.headers,
         )
         response = r.json()
         return response
@@ -129,8 +196,7 @@ class PloomesClient:
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
-    def create_simple_contact(self, payload
-                              ):
+    def create_simple_contact(self, payload):
         """
         This function creates a contact in a CRM system by sending a POST request to an API endpoint.
         The function requires 7 mandatory parameters: Name, Neighborhood, ZipCode, Register, StreetAddressNumber, Phones, OtherProperties
@@ -150,9 +216,22 @@ class PloomesClient:
         """
         payload = json.dumps(payload)
         r = requests.post(
-            f"{self.host}/Contacts?$expand=Phones,OtherProperties", data=payload, headers=self.headers
+            f"{self.host}/Contacts?$expand=Phones,OtherProperties",
+            data=payload,
+            headers=self.headers,
         )
         response = r.json()
+        return response
+
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def check_duplicate_contact(self, payload):
+        payload = json.dumps(payload)
+        r = requests.post(
+            f"{self.host}/Contacts/IsDuplicate", data=payload, headers=self.headers
+        )
+        response = r.json().get("value")
         return response
 
     @retry
@@ -162,18 +241,17 @@ class PloomesClient:
         payload = {}
         # Extract the filename from the URL
         filename = get_file_url(image_url)
-        files = [
-            ('file1', (filename, requests.get(image_url).content, 'image/jpeg'))]
+        files = [("file1", (filename, requests.get(image_url).content, "image/jpeg"))]
 
         headers = self.headers
-        del headers['Content-Type']
+        del headers["Content-Type"]
 
         r = requests.post(
             f"{self.host}/Images", data=payload, files=files, headers=headers
         )
         response = r.json()
-        if response.get('value'):
-            return response['value'][0]['Url']
+        if response.get("value"):
+            return response["value"][0]["Url"]
         return None
 
     @retry
@@ -183,23 +261,34 @@ class PloomesClient:
         payload = {}
         # Extract the filename from the URL
         filename = get_file_url(image_url)
-        print("filename: ", filename)
 
-        files = [
-            ('file1', (filename, requests.get(image_url).content, 'image/jpeg'))]
+        files = [("file1", (filename, requests.get(image_url).content, "image/jpeg"))]
 
         headers = {"User-Key": self.api_key}
 
-        print("post_contact headers: ", headers)
-
         r = requests.post(
-            f"{self.host}/Contacts({contact_id})/UploadAvatar", data=payload, files=files, headers=headers
+            f"{self.host}/Contacts({contact_id})/UploadAvatar",
+            data=payload,
+            files=files,
+            headers=headers,
         )
         response = r.json()
-        if response.get('value'):
-            return response['value'][0]['AvatarUrl']
+        if response.get("value"):
+            return response["value"][0]["AvatarUrl"]
         return None
 
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def get_contact_origins(
+        self,
+    ):
+        r = requests.get(
+            f"{self.host}/Contacts@Origins?$skip=0&$top=20&$select=Id,Name&$orderby=Name&$count=true",
+            headers=self.headers,
+        )
+        response = r.json().get("value")
+        return response
 
     @retry
     @sleep_and_retry
@@ -210,29 +299,58 @@ class PloomesClient:
         filename = get_file_url(image_url)
         print("filename: ", filename)
 
-        files = [
-            ('file1', (filename, requests.get(image_url).content, 'image/jpeg'))]
+        files = [("file1", (filename, requests.get(image_url).content, "image/jpeg"))]
 
         headers = {"User-Key": self.api_key}
 
         r = requests.post(
-            f"{self.host}/Users({user_id})/UploadAvatar", data=payload, files=files, headers=headers
+            f"{self.host}/Users({user_id})/UploadAvatar",
+            data=payload,
+            files=files,
+            headers=headers,
         )
         response = r.json()
-        if response.get('value'):
-            return response['value'][0]['AvatarUrl']
+        if response.get("value"):
+            return response["value"][0]["AvatarUrl"]
         return None
 
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
-    def get_contacts(self, filter):
+    def get_roles(
+        self,
+    ):
+        r = requests.get(
+            f"{self.host}/Roles?$select=Id,Name&$orderby=Name&$count=true",
+            headers=self.headers,
+        )
+        response = r.json().get("value")
+        return response
+
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def post_new_role(self, payload):
+        r = requests.post(
+            f"{self.host}/Roles",
+            data=json.dumps(payload),
+            headers=self.headers,
+        )
+        response = r.json().get("value")
+        return response
+
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def get_contacts(self, _filter, select=None):
         response = []
-        url = f"{self.host}/Contacts?$top=300&$orderby=Id+desc,CNPJ&$expand=Phones&$filter={filter}"
+        url = f"{self.host}/Contacts?$orderby=Id+desc,CNPJ&$expand=OtherProperties,Phones&$filter={_filter}"
+        if select:
+            url += f"&$select={select}"
         while url:
             r = requests.get(url, headers=self.headers)
             data = r.json()
-            if data.get('value'):
+            if data.get("value"):
                 response += data["value"]
             url = data.get("@odata.nextLink")
         return response
@@ -241,8 +359,7 @@ class PloomesClient:
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def delete_contact(self, id_):
-        r = requests.delete(
-            f"{self.host}/Contacts({id_})", headers=self.headers)
+        r = requests.delete(f"{self.host}/Contacts({id_})", headers=self.headers)
         response = r.json()
         return response
 
@@ -251,32 +368,36 @@ class PloomesClient:
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def update_contact(self, id_, field):
         payload = json.dumps(field)
-        r = requests.patch(f"{self.host}/Contacts({id_})?$expand=OtherProperties,Phones",
-                           data=payload, headers=self.headers)
+        r = requests.patch(
+            f"{self.host}/Contacts({id_})?$expand=OtherProperties,Phones",
+            data=payload,
+            headers=self.headers,
+        )
         response = r.json()
-        print(response)
         return response
 
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
-    def get_field(self, name):
-        r = requests.get(
-            f"{self.host}/Fields?$filter=Name+eq+'{name}'&$expand=Type,OptionsTable($expand=Options)",
-            headers=self.headers,
-        )
-        response = r.json().get("value")
-        if response:
-            item = next(iter(response))
-            return item
-        return None
+    def get_fields(self, _filter, expand=None):
+        response = []
+        url = f"{self.host}/Fields?$filter={_filter}"
+        if expand:
+            url += f"&$expand={expand}"
+        while url:
+            r = requests.get(url, headers=self.headers, timeout=5)
+            data = r.json()
+            if data.get("value"):
+                response += data["value"]
+            url = data.get("@odata.nextLink")
+        return response
 
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def get_field_options(self, table_id):
         r = requests.get(
-            f"{self.host}/Fields@OptionsTables@Options?$filter=TableId+eq+{table_id}&$orderby=Name&$count=true&$top=10&$skip=0",
+            f"{self.host}/Fields@OptionsTables@Options?$filter=TableId+eq+{table_id}&$orderby=Name&$count=true&$skip=0",
             headers=self.headers,
         )
         response = r.json().get("value")
@@ -288,12 +409,10 @@ class PloomesClient:
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def create_field_option(self, option_name, table_id):
-        payload = json.dumps({
-            "Name": option_name,
-            "TableId": table_id
-        })
+        payload = json.dumps({"Name": option_name, "TableId": table_id})
         r = requests.post(
-            f"{self.host}/Fields@OptionsTables@Options", data=payload,
+            f"{self.host}/Fields@OptionsTables@Options",
+            data=payload,
             headers=self.headers,
         )
         response = r.json().get("value")
@@ -306,13 +425,7 @@ class PloomesClient:
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def create_field(self, name, type_=1, options_table=None):
-
-        payload = {
-            "Name": name,
-            "EntityId": 1,
-            "TypeId": type_,
-            "Required": False
-        }
+        payload = {"Name": name, "EntityId": 1, "TypeId": type_, "Required": False}
 
         if options_table:
             payload["OptionsTable"] = options_table
@@ -320,7 +433,8 @@ class PloomesClient:
         payload = json.dumps(payload)
 
         r = requests.post(
-            f"{self.host}/Fields?$expand=Type,OptionsTable($expand=Options)", data=payload,
+            f"{self.host}/Fields?$expand=Type,OptionsTable($expand=Options)",
+            data=payload,
             headers=self.headers,
         )
         print(r.json())
@@ -333,14 +447,15 @@ class PloomesClient:
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
-    def get_city(self, name):
+    def get_city(self, _filter):
         r = requests.get(
-            f"{self.host}/Cities?$top=20&$expand=Country,State&$filter=Name+eq+'{name}'",
+            f"{self.host}/Cities?$expand=Country,State&$filter={_filter}",
             headers=self.headers,
         )
         response = r.json().get("value")
-        print(response)
-        return next(iter(response))
+        if response:
+            return response
+        return None
 
     @retry
     @sleep_and_retry
@@ -356,13 +471,31 @@ class PloomesClient:
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
-    def create_basic_contact(self, fields):
-        payload = json.dumps(fields)
-        r = requests.post(
-            f"{self.host}/Contacts?$expand=Phones,OtherProperties", data=payload, headers=self.headers
-        )
-        response = r.json()
-        return response
+    def create_basic_contact(self, fields: Dict) -> Optional[Dict]:
+        """
+        Create a basic contact on Ploomes.
+
+        Args:
+            fields (Dict): The fields for the new contact.
+
+        Returns:
+            Optional[Dict]: The response from Ploomes, if successful. None otherwise.
+        """
+        url = f"{self.host}/Contacts?$expand=Phones,OtherProperties"
+
+        try:
+            r = requests.post(url, json=fields, headers=self.headers)
+            r.raise_for_status()
+            response = r.json()
+            return response.get("value")
+        except RequestException as e:
+            logger.error(f"Failed to create contact: {str(e)}")
+        except json.JSONDecodeError:
+            logger.error(f"Invalid JSON in response: {r.text}")
+
+        return None
+
+
 
     @retry
     @sleep_and_retry
@@ -395,16 +528,23 @@ class PloomesClient:
 
     @retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
-    def get_instance(self, filter="(OtherProperties/any(p: p/FieldKey eq 'product_5AC275B5-C0E4-4076-852E-782CC896439A' and p/BoolValue eq false) \
-                and OtherProperties/any(p: p/FieldKey eq 'product_97F8B3A8-C827-4992-B314-9CBB7D72D39C' and p/BoolValue eq false) \
-                and OtherProperties/any(p: p/FieldKey eq 'product_FFAC88DC-6FAC-4366-A10D-BE99AC7D2BB6' and p/ObjectValueName eq 'green'))"):
-        r = requests.get(
-            f"{self.host}/Products?$expand=OtherProperties&$filter={filter}&$orderby=Id+asc",
-            headers=self.headers, timeout=5
-        )
-        response = r.json().get("value")
-        data = self.format_product_response(response)
-        return data
+    def get_instance(self, filter=None):
+        response = []
+        url = f"{self.host}/Products?"
+        if filter:
+            url += f"$filter={filter}&"
+        url += "$expand=OtherProperties&$orderby=Id+asc"
+
+        while url:
+            r = requests.get(url, headers=self.headers, timeout=5)
+            data = r.json()
+            if data.get("value"):
+                response += data["value"]
+            url = data.get("@odata.nextLink")
+        return response
+        # response = r.json().get("value")
+        # data = self.format_product_response(response)
+        # return data
 
     @retry
     @sleep_and_retry
@@ -415,7 +555,6 @@ class PloomesClient:
         print(r.json())
         response = r.json().get("value")
         return response
-
 
     @retry
     @sleep_and_retry
@@ -435,8 +574,21 @@ class PloomesClient:
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
-    def post_filters(self,data: Dict):
-        print("This is data",data)
+    def post_product(self, payload):
+        payload = json.dumps(payload)
+        r = requests.post(
+            f"{self.host}/Products?Products?$expand=Currency,Group,Family,Lists($expand=List),Parts($expand=Group,OtherProperties,RequiredParts,SuggestedParts,BlockedParts,ProductPart,GroupPart,ListPart),OtherProperties",
+            headers=self.headers,
+            data=payload,
+        )
+        response = r.json()
+        return response
+
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def post_filters(self, data: Dict):
+        print("This is data", data)
         url = f"{self.host}/Filters?$expand=AllowedUsers($expand=User),AllowedTeams($expand=Team),Fields($expand=Operation,Selector,FieldPath,Values)"
         r = requests.post(url, headers=self.headers, data=json.dumps(data))
         if r.status_code == 200:
@@ -457,12 +609,10 @@ class PloomesClient:
         else:
             return f"Error updating table {tableId}: {r.status_code} - {r.text}"
 
-
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def update_instance(self, id_, inUse=None, Authorized=None):
-
         config = {"OtherProperties": []}
         list_ = []
 
@@ -486,16 +636,20 @@ class PloomesClient:
         print(config)
 
         r = requests.patch(
-            f"{self.host}/Products({id_})", data=json.dumps(config), headers=self.headers
+            f"{self.host}/Products({id_})",
+            data=json.dumps(config),
+            headers=self.headers,
         )
         response = r.json()
         return response
 
     def format_product_response(self, data):
         result = {}
-        fields_to_find = {"product_E44A0C6A-893C-447E-A391-4C574279977B", 
-                        "product_7D87390D-CA3E-4E56-A5DD-FE20ECDBF817", 
-                        "product_FFAC88DC-6FAC-4366-A10D-BE99AC7D2BB6"}
+        fields_to_find = {
+            "product_E44A0C6A-893C-447E-A391-4C574279977B",
+            "product_7D87390D-CA3E-4E56-A5DD-FE20ECDBF817",
+            "product_FFAC88DC-6FAC-4366-A10D-BE99AC7D2BB6",
+        }
         for item in data:
             result["id"] = item["Id"]
             for prop in item["OtherProperties"]:
@@ -519,15 +673,14 @@ class PloomesClient:
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def get_deals(self, filter):
         response = []
-        url = f"{self.host}/Deals?$top=300&$orderby=Id+desc&$filter={filter}"
+        url = f"{self.host}/Deals?$orderby=Id+desc&$filter={filter}&$expand=OtherProperties"
         while url:
             r = requests.get(url, headers=self.headers)
             data = r.json()
-            if data.get('value'):
+            if data.get("value"):
                 response += data["value"]
             url = data.get("@odata.nextLink")
         return response
-
 
     @retry
     @sleep_and_retry
@@ -543,8 +696,39 @@ class PloomesClient:
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def patch_deal(self, deal_id, payload):
-        r = requests.patch(f"{self.host}/Deals({deal_id})?$expand=Stages,Tags,Products,Contacts,OtherProperties",
-                           headers=self.headers, data=payload)
+        r = requests.patch(
+            f"{self.host}/Deals({deal_id})?$expand=Stages,Tags,Products,Contacts,OtherProperties",
+            headers=self.headers,
+            data=json.dumps(payload),
+        )
+        return r.json()
+
+    @retry
+    @sleep_and_retry
+    @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
+    def upload_deal_attachment(self, deal_id: Union[str, int], file_path: str):
+        # Make sure the file exists
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"No file found at {file_path}")
+
+        # Open the file in binary mode
+        with open(file_path, "rb") as f:
+            # Define the headers for the request
+
+            # Define the files for the request
+            filename = os.path.basename(file_path)
+            files = [("file", (filename, f, "application/pdf"))]
+
+            headers = {"User-Key": self.api_key}
+
+            # Make the request
+            r = requests.post(
+                f"{self.host}/Deals({deal_id})/UploadFile?$expand=Attachments",
+                headers=headers,
+                files=files,
+            )
+
+        # Return the response as JSON
         return r.json()
 
     @retry
@@ -559,8 +743,7 @@ class PloomesClient:
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def post_deal(self, fields):
         payload = json.dumps(fields)
-        r = requests.post(f"{self.host}/Deals",
-                          data=payload, headers=self.headers)
+        r = requests.post(f"{self.host}/Deals", data=payload, headers=self.headers)
         response = r.json().get("value")
         print(response)
         return next(iter(response))
@@ -569,8 +752,7 @@ class PloomesClient:
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def post_deal_action(self, id_, status):
-        r = requests.post(f"{self.host}/Deals({id_})/{status}",
-                          headers=self.headers)
+        r = requests.post(f"{self.host}/Deals({id_})/{status}", headers=self.headers)
         response = r.json()
         return response
 
@@ -586,22 +768,21 @@ class PloomesClient:
         while url:
             r = requests.get(url, headers=self.headers, timeout=5)
             data = r.json()
-            if data.get('value'):
+            if data.get("value"):
                 response += data["value"]
             url = data.get("@odata.nextLink")
         return response
 
-
     @retry
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
-    def patch_interaction_record(self,interaction_id, payload):
+    def patch_interaction_record(self, interaction_id, payload):
         response = []
         payload = json.dumps(payload)
         url = f"{self.host}/InteractionRecords({interaction_id})"
         r = requests.patch(url, headers=self.headers, data=payload, timeout=5)
         data = r.json()
-        if data.get('value'):
+        if data.get("value"):
             response += data["value"]
         return response
 
@@ -609,18 +790,21 @@ class PloomesClient:
     @sleep_and_retry
     @limits(calls=MAX_REQUESTS_PER_SECOND, period=1)
     def post_interaction_record(self, contact_id, content, date, type_id=7):
+        response = []
         payload = json.dumps(
             {
                 "ContactId": contact_id,
                 "Content": content,
                 "Date": date,
-                "TypeId": type_id
+                "TypeId": type_id,
             }
         )
         r = requests.post(
             f"{self.host}/InteractionRecords", data=payload, headers=self.headers
         )
-        response = r.json()
+        data = r.json()
+        if data.get("value"):
+            response += data["value"]
         return response
 
 
