@@ -50,6 +50,47 @@ class Contacts:
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
+    def get_contacts_products(
+        self,
+        filter_=None,
+        expand=None,
+        top=None,
+        inlinecount=None,
+        orderby=None,
+        select=None,
+        skip=None,
+    ):
+        """
+        Creates a new contact using the provided payload and filters.
+
+        Args:
+            payload (dict): The data for the contact to be created.
+            filter_ (str, optional): OData filter string.
+            expand (str, optional): Expand related entities.
+            top (int, optional): Maximum number of results to return.
+            inlinecount (str, optional): Option for inline count.
+            orderby (str, optional): Order by clause.
+            select (str, optional): Select specific properties.
+            skip (int, optional): Number of results to skip.
+
+        Returns:
+            Response: The response object containing the result of the POST request.
+        """
+        filters = {
+            "$filter": filter_,
+            "$inlinecount": inlinecount,
+            "$orderby": orderby,
+            "$select": select,
+            "$skip": skip,
+            "$top": top,
+            "$expand": expand,
+        }
+        return self.client.request(
+            "GET",
+            self.path + "@Products",
+            filters={k: v for k, v in filters.items() if v is not None},
+        )
+
     def post_contact(
         self,
         payload,
@@ -74,6 +115,34 @@ class Contacts:
         return self.client.request(
             "POST",
             self.path,
+            filters={k: v for k, v in filters.items() if v is not None},
+            payload=payload_json,
+        )
+
+    def post_contact_products(
+        self,
+        payload,
+        filter_=None,
+        expand=None,
+        top=None,
+        inlinecount=None,
+        orderby=None,
+        select=None,
+        skip=None,
+    ):
+        filters = {
+            "$filter": filter_,
+            "$inlinecount": inlinecount,
+            "$orderby": orderby,
+            "$select": select,
+            "$skip": skip,
+            "$top": top,
+            "$expand": expand,
+        }
+        payload_json = json.dumps(payload)
+        return self.client.request(
+            "POST",
+            self.path + "@Products",
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
@@ -124,6 +193,52 @@ class Contacts:
             payload=payload_json,
         )
 
+    def patch_contact_products(
+        self,
+        id_: int,
+        payload: dict,
+        filter_=None,
+        expand=None,
+        top=None,
+        inlinecount=None,
+        orderby=None,
+        select=None,
+        skip=None,
+    ):
+        """
+        Updates a contact by its ID with specific fields.
+
+        Args:
+            id_ (int): The ID of the contact to be updated.
+            payload (dict): Fields to be updated in the contact.
+            filter_ (str, optional): OData filter string.
+            inlinecount (str, optional): Option for inline count.
+            orderby (str, optional): Order by clause.
+            select (str, optional): Select specific properties.
+            skip (int, optional): Number of results to skip.
+            top (int, optional): Maximum number of results to return.
+            expand (str, optional): Expand related entities.
+
+        Returns:
+            dict: The JSON response from the server.
+        """
+        filters = {
+            "$filter": filter_,
+            "$inlinecount": inlinecount,
+            "$orderby": orderby,
+            "$select": select,
+            "$skip": skip,
+            "$top": top,
+            "$expand": expand,
+        }
+        payload_json = json.dumps(payload)
+        return self.client.request(
+            "PATCH",
+            self.path + f"@Products({id_})",
+            filters={k: v for k, v in filters.items() if v is not None},
+            payload=payload_json,
+        )
+
     def delete_contact(self, id_: int):
         """
         Deletes a contact by its ID.
@@ -135,6 +250,18 @@ class Contacts:
             dict: The JSON response from the server.
         """
         return self.client.request("DELETE", self.path + f"({id_})")
+
+    def delete_contact_products(self, id_: int):
+        """
+        Deletes a contact by its ID.
+
+        Args:
+            id_ (int): The ID of the contact to be deleted.
+
+        Returns:
+            dict: The JSON response from the server.
+        """
+        return self.client.request("DELETE", self.path + f"@Products({id_})")
 
     def post_contact_avatar(self, contact_id: int, image_url: str) -> dict:
         """

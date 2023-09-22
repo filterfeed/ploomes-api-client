@@ -2,12 +2,12 @@ import json
 from ploomes_client.core.ploomes_client import PloomesClient
 
 
-class Products:
+class Tasks:
     def __init__(self, client: PloomesClient) -> None:
         self.client = client
-        self.path = "/Products"
+        self.path = "/Tasks"
 
-    def get_products(
+    def get_tasks(
         self,
         filter_=None,
         expand=None,
@@ -18,7 +18,7 @@ class Products:
         skip=None,
     ):
         """
-        Retrieves products based on the provided filters.
+        Retrieves tasks based on the provided filters.
 
         Args:
             filter_ (str, optional): OData filter string.
@@ -30,7 +30,7 @@ class Products:
             expand (str, optional): Expand related entities.
 
         Returns:
-            dict: The JSON response from the server containing the contacts.
+            dict: The JSON response from the server containing the tasks.
         """
         filters = {
             "$filter": filter_,
@@ -47,7 +47,7 @@ class Products:
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    def post_product(
+    def post_task(
         self,
         payload,
         filter_=None,
@@ -58,6 +58,22 @@ class Products:
         select=None,
         skip=None,
     ):
+        """
+        Creates a new task.
+
+        Args:
+            payload (dict): The task data.
+            filter_ (str, optional): OData filter string.
+            inlinecount (str, optional): Option for inline count.
+            orderby (str, optional): Order by clause.
+            select (str, optional): Select specific properties.
+            skip (int, optional): Number of results to skip.
+            top (int, optional): Maximum number of results to return.
+            expand (str, optional): Expand related entities.
+
+        Returns:
+            dict: The JSON response from the server.
+        """
         filters = {
             "$filter": filter_,
             "$inlinecount": inlinecount,
@@ -75,7 +91,7 @@ class Products:
             payload=payload_json,
         )
 
-    def patch_product(
+    def patch_task(
         self,
         id_: int,
         payload: dict,
@@ -88,11 +104,11 @@ class Products:
         skip=None,
     ):
         """
-        Updates a product by its ID with specific fields.
+        Updates a task by its ID.
 
         Args:
-            id_ (int): The ID of the contact to be updated.
-            payload (dict): Fields to be updated in the contact.
+            id_ (int): The ID of the task.
+            payload (dict): The new data for the task.
             filter_ (str, optional): OData filter string.
             inlinecount (str, optional): Option for inline count.
             orderby (str, optional): Order by clause.
@@ -121,14 +137,17 @@ class Products:
             payload=payload_json,
         )
 
-    def delete_contact(self, id_: int):
+    def delete_task(self, id_: int):
         """
-        Deletes a product by its ID.
+        Deletes a task by its ID.
 
         Args:
-            id_ (int): The ID of the product to be deleted.
+            id_ (int): The ID of the task.
 
         Returns:
             dict: The JSON response from the server.
         """
-        return self.client.request("DELETE", self.path + f"({id_})")
+        return self.client.request(
+            "DELETE",
+            self.path + f"({id_})",
+        )

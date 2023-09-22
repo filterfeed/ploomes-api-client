@@ -1,6 +1,6 @@
 # Ploomes API Python Client
 
-This package provides a simple Python client for the [Ploomes API](https://developers.ploomes.com/).
+This package provides a simple Python client for interacting with the [Ploomes API](https://developers.ploomes.com/), designed with rate-limiting and exponential backoff strategies for improved resilience.
 
 ## Installation
 
@@ -10,49 +10,52 @@ You can install the package from PyPI:
 pip install ploomes-api-client
 ```
 
-## Usage
+## Basic Usage
 
-First, import the `PloomesClient` class:
+### Contact Management
 
-```python
-from ploomes_client import PloomesClient
-```
-
-Next, create an instance of the `PloomesClient` class, passing your API key as a parameter:
+To manage contacts, first import the necessary classes and initialize them:
 
 ```python
-ploomes = PloomesClient('your_api_key_here')
+from ploomes_client import PloomesClient as Ploomes
+from ploomes_client.collections.contacts import Contacts
 ```
 
-Now you can use the methods of the `PloomesClient` class to interact with the API.
+#### Initialize PloomesClient and Contacts Class
 
 ```python
-# Get user account
-user_account = ploomes.get_user_account()
-
-# Create a contact
-response = ploomes.create_contact(
-    Name='John Doe',
-    Email='johndoe@example.com',
-    City='City',
-    State='State',
-    StreetAddress='Street Address',
-    Neighborhood='Neighborhood',
-    ZipCode='ZipCode',
-    Register='Register',
-    StreetAddressNumber='StreetAddressNumber',
-    Phones=[{'PhoneNumber': '1234567890'}],
-    OtherProperties={'Property': 'Value'}
-)
+ploomes = Ploomes(api_key='your_api_key_here')
+contacts = Contacts(ploomes)
 ```
+
+#### Creating a New Contact with Expanded Fields
+
+Here is a synthetic example to demonstrate how to create a new contact with expanded `Phones` and `OtherProperties`:
+
+```python
+# Define the payload for the new contact
+payload = {
+    "Name": "Jane Doe",
+    "Email": "janedoe@example.com",
+    "Phones": [
+        {"PhoneNumber": "1234567890", "Type": "Mobile"}
+    ],
+    "OtherProperties": {"FavoriteColor": "Blue", "Occupation": "Engineer"}
+}
+
+# Create the contact
+response_json = contacts.post_contact(payload, expand="Phones,OtherProperties")
+```
+
+In this example, the `post_contact` method sends a POST request to create a new contact in Ploomes. The `payload` dictionary contains the data for the new contact, including fields like `Name`, `Email`, `Phones`, and `OtherProperties`. We also use the `expand` parameter to expand the `Phones` and `OtherProperties` fields.
+
+By default, the `post_contact` method will return a JSON-formatted string as the response.
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 # Uploading to PyPI with Two-Factor Authentication
-
-If you're encountering the "two factor auth enabled" error while trying to upload your Python package to PyPI, follow these steps to resolve the issue.
 
 1. Generate an API token for your PyPI account:
 
@@ -83,4 +86,3 @@ If you're encountering the "two factor auth enabled" error while trying to uploa
 
    - Check the PyPI project page to ensure your new version is listed.
 
-By following these steps, you'll be able to upload your package to PyPI successfully even with two-factor authentication enabled.

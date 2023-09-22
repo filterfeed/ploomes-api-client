@@ -5,3 +5,4 @@ from .deals import Deals
 from .fields import Fields
 from .interaction_records import InteractionRecords
 from .products import Products
+from .tasks import Tasks

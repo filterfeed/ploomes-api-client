@@ -7,4 +7,5 @@ from .collections import (
     Fields,
     InteractionRecords,
     Products,
+    Tasks,
 )
