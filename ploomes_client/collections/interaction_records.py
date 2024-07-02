@@ -7,7 +7,7 @@ class InteractionRecords:
         self.client = client
         self.path = "/InteractionRecords"
 
-    def get_interaction_records(
+    async def get_interaction_records(
         self,
         filter_=None,
         expand=None,
@@ -30,7 +30,7 @@ class InteractionRecords:
             expand (str, optional): Expand related entities.
 
         Returns:
-            dict: The JSON response from the server containing the contacts.
+            dict: The JSON response from the server containing the interaction records.
         """
         filters = {
             "$filter": filter_,
@@ -41,13 +41,13 @@ class InteractionRecords:
             "$top": top,
             "$expand": expand,
         }
-        return self.client.request(
+        return await self.client.request(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    def post_interaction_record(
+    async def post_interaction_record(
         self,
         payload,
         filter_=None,
@@ -68,14 +68,43 @@ class InteractionRecords:
             "$expand": expand,
         }
         payload_json = json.dumps(payload)
-        return self.client.request(
+        return await self.client.request(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    def patch_interaction_record(
+    async def post_interaction_record_comment(
+        self,
+        id_: int,
+        payload: dict,
+        filter_=None,
+        expand=None,
+        top=None,
+        inlinecount=None,
+        orderby=None,
+        select=None,
+        skip=None,
+    ):
+        filters = {
+            "$filter": filter_,
+            "$inlinecount": inlinecount,
+            "$orderby": orderby,
+            "$select": select,
+            "$skip": skip,
+            "$top": top,
+            "$expand": expand,
+        }
+        payload_json = json.dumps(payload)
+        return await self.client.request(
+            "POST",
+            self.path + f"({id_})" + "/NewComment",
+            filters={k: v for k, v in filters.items() if v is not None},
+            payload=payload_json,
+        )
+
+    async def patch_interaction_record(
         self,
         id_: int,
         payload: dict,
@@ -91,8 +120,8 @@ class InteractionRecords:
         Updates an interaction record by its ID with specific fields.
 
         Args:
-            id_ (int): The ID of the contact to be updated.
-            payload (dict): Fields to be updated in the contact.
+            id_ (int): The ID of the interaction record to be updated.
+            payload (dict): Fields to be updated in the interaction record.
             filter_ (str, optional): OData filter string.
             inlinecount (str, optional): Option for inline count.
             orderby (str, optional): Order by clause.
@@ -114,24 +143,24 @@ class InteractionRecords:
             "$expand": expand,
         }
         payload_json = json.dumps(payload)
-        return self.client.request(
+        return await self.client.request(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    def delete_contact(self, id_: int):
+    async def delete_interaction_record(self, id_: int):
         """
-        Deletes a contact by its ID.
+        Deletes a interaction record by its ID.
 
         Args:
-            id_ (int): The ID of the contact to be deleted.
+            id_ (int): The ID of the interaction record to be deleted.
 
         Returns:
             dict: The JSON response from the server.
         """
-        return self.client.request(
+        return await self.client.request(
             "DELETE",
             self.path + f"({id_})",
         )

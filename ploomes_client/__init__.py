@@ -1,11 +1,35 @@
 from .core.ploomes_client import PloomesClient
 from .collections import (
+    Attachments,
     Account,
     Cities,
     Contacts,
     Deals,
     Fields,
     InteractionRecords,
+    Filters,
+    Tables,
+    Users,
+    Comments,
     Products,
     Tasks,
+    Emails,
 )
+
+__all__ = [
+    "PloomesClient",
+    "Attachments",
+    "Account",
+    "Cities",
+    "Contacts",
+    "Deals",
+    "Fields",
+    "InteractionRecords",
+    "Filters",
+    "Tables",
+    "Users",
+    "Comments",
+    "Products",
+    "Tasks",
+    "Emails",
+]

@@ -2,12 +2,12 @@ import json
 from ploomes_client.core.ploomes_client import PloomesClient
 
 
-class Products:
+class Emails:
     def __init__(self, client: PloomesClient) -> None:
         self.client = client
-        self.path = "/Products"
+        self.path = "/Emails"
 
-    async def get_products(
+    async def get_emails(
         self,
         filter_=None,
         expand=None,
@@ -18,7 +18,7 @@ class Products:
         skip=None,
     ):
         """
-        Retrieves products based on the provided filters.
+        Retrieves emails based on the provided filters.
 
         Args:
             filter_ (str, optional): OData filter string.
@@ -30,7 +30,7 @@ class Products:
             expand (str, optional): Expand related entities.
 
         Returns:
-            dict: The JSON response from the server containing the products.
+            dict: The JSON response from the server containing the emails.
         """
         filters = {
             "$filter": filter_,
@@ -41,13 +41,16 @@ class Products:
             "$top": top,
             "$expand": expand,
         }
+
+        import logging
+        logging.warning(filters)
         return await self.client.request(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_product(
+    async def post_email(
         self,
         payload,
         filter_=None,
@@ -58,6 +61,22 @@ class Products:
         select=None,
         skip=None,
     ):
+        """
+        Creates a new email.
+
+        Args:
+            payload (dict): The email data.
+            filter_ (str, optional): OData filter string.
+            inlinecount (str, optional): Option for inline count.
+            orderby (str, optional): Order by clause.
+            select (str, optional): Select specific properties.
+            skip (int, optional): Number of results to skip.
+            top (int, optional): Maximum number of results to return.
+            expand (str, optional): Expand related entities.
+
+        Returns:
+            dict: The JSON response from the server.
+        """
         filters = {
             "$filter": filter_,
             "$inlinecount": inlinecount,
@@ -75,7 +94,7 @@ class Products:
             payload=payload_json,
         )
 
-    async def patch_product(
+    async def patch_email(
         self,
         id_: int,
         payload: dict,
@@ -88,11 +107,11 @@ class Products:
         skip=None,
     ):
         """
-        Updates a product by its ID with specific fields.
+        Updates a email by its ID.
 
         Args:
-            id_ (int): The ID of the product to be updated.
-            payload (dict): Fields to be updated in the product.
+            id_ (int): The ID of the email.
+            payload (dict): The new data for the email.
             filter_ (str, optional): OData filter string.
             inlinecount (str, optional): Option for inline count.
             orderby (str, optional): Order by clause.
@@ -121,14 +140,17 @@ class Products:
             payload=payload_json,
         )
 
-    async def delete_product(self, id_: int):
+    async def delete_email(self, id_: int):
         """
-        Deletes a product by its ID.
+        Deletes a email by its ID.
 
         Args:
-            id_ (int): The ID of the product to be deleted.
+            id_ (int): The ID of the email.
 
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request("DELETE", self.path + f"({id_})")
+        return await self.client.request(
+            "DELETE",
+            self.path + f"({id_})",
+        )
