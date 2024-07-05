@@ -55,7 +55,7 @@ class PloomesClient:
     async def _hold_requests(self, delay):
         self._shared_hold_requests = True
         self._shared_hold_until = time.time() + delay
-        logger.warning("Holding all requests for %d seconds", delay)
+        logger.info("Holding all requests for %d seconds", delay)
         await asyncio.sleep(delay)
 
     async def _check_hold_status(self):

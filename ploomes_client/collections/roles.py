@@ -42,8 +42,6 @@ class Roles:
             "$expand": expand,
         }
 
-        import logging
-        logging.warning(filters)
         return await self.client.request(
             "GET",
             self.path,

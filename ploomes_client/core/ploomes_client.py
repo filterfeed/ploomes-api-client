@@ -1,6 +1,5 @@
 import time
 import math
-import logging
 from urllib.parse import urlencode
 from requests.exceptions import RequestException, HTTPError
 from ploomes_client.sessions.session_manager import SessionManager
@@ -98,7 +97,7 @@ class PloomesClient:
         self._shared_hold_until = (
             time.time() + delay
         )  # Calculate the timestamp until which requests are held
-        logger.warning("Holding all requests for %d seconds", delay)
+        logger.info("Holding all requests for %d seconds", delay)
         time.sleep(delay)  # Wait for the specified delay
 
     def _check_hold_status(self):
