@@ -7,7 +7,7 @@ class Deals:
         self.client = client
         self.path = "/Deals"
 
-    def get_deals(
+    async def get_deals(
         self,
         filter_=None,
         expand=None,
@@ -41,13 +41,13 @@ class Deals:
             "$top": top,
             "$expand": expand,
         }
-        return self.client.request(
+        return await self.client.request(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    def post_deal(
+    async def post_deal(
         self,
         payload,
         filter_=None,
@@ -68,14 +68,42 @@ class Deals:
             "$expand": expand,
         }
         payload_json = json.dumps(payload)
-        return self.client.request(
+        return await self.client.request(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    def patch_deal(
+    async def win_deal(self, id_: int):
+        """
+        Win a deal by its ID.
+
+        Args:
+            id_ (int): The ID of the deal to be deleted.
+
+        Returns:
+            dict: The JSON response from the server.
+        """
+        return await self.client.request(
+            "POST", self.path + f"({id_})/Win", payload=json.dumps({})
+        )
+
+    async def lose_deal(self, id_: int):
+        """
+        Lose a deal by its ID.
+
+        Args:
+            id_ (int): The ID of the deal to be deleted.
+
+        Returns:
+            dict: The JSON response from the server.
+        """
+        return await self.client.request(
+            "POST", self.path + f"({id_})/Lose", payload=json.dumps({})
+        )
+
+    async def patch_deal(
         self,
         id_: int,
         payload: dict,
@@ -114,14 +142,14 @@ class Deals:
             "$expand": expand,
         }
         payload_json = json.dumps(payload)
-        return self.client.request(
+        return await self.client.request(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    def delete_deal(self, id_: int):
+    async def delete_deal(self, id_: int):
         """
         Deletes a deal by its ID.
 
@@ -131,7 +159,7 @@ class Deals:
         Returns:
             dict: The JSON response from the server.
         """
-        return self.client.request(
+        return await self.client.request(
             "DELETE",
             self.path + f"({id_})",
         )

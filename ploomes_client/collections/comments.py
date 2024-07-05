@@ -1,13 +1,16 @@
+import json
 from ploomes_client.core.ploomes_client import PloomesClient
 
 
-class Cities:
+class Comments:
     def __init__(self, client: PloomesClient) -> None:
         self.client = client
-        self.path = "/Cities"
+        self.path = "/Comments"
 
-    async def get_cities(
+    async def patch_comment(
         self,
+        id_: int,
+        payload: dict,
         filter_=None,
         expand=None,
         top=None,
@@ -17,9 +20,11 @@ class Cities:
         skip=None,
     ):
         """
-        Retrieves cities based on the provided filters.
+        Updates an interaction record by its ID with specific fields.
 
         Args:
+            id_ (int): The ID of the contact to be updated.
+            payload (dict): Fields to be updated in the contact.
             filter_ (str, optional): OData filter string.
             inlinecount (str, optional): Option for inline count.
             orderby (str, optional): Order by clause.
@@ -29,7 +34,7 @@ class Cities:
             expand (str, optional): Expand related entities.
 
         Returns:
-            dict: The JSON response from the server containing the cities.
+            dict: The JSON response from the server.
         """
         filters = {
             "$filter": filter_,
@@ -40,8 +45,25 @@ class Cities:
             "$top": top,
             "$expand": expand,
         }
+        payload_json = json.dumps(payload)
         return await self.client.request(
-            "GET",
-            self.path,
+            "PATCH",
+            self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
+            payload=payload_json,
+        )
+
+    async def delete_comment(self, id_: int):
+        """
+        Deletes a contact by its ID.
+
+        Args:
+            id_ (int): The ID of the contact to be deleted.
+
+        Returns:
+            dict: The JSON response from the server.
+        """
+        return await self.client.request(
+            "DELETE",
+            self.path + f"({id_})",
         )

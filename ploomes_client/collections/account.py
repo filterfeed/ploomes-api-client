@@ -1,4 +1,3 @@
-import json
 from ploomes_client.core.ploomes_client import PloomesClient
 
 
@@ -7,7 +6,7 @@ class Account:
         self.client = client
         self.path = "/Account"
 
-    def get_account(
+    async def get_account(
         self,
         filter_=None,
         expand=None,
@@ -41,7 +40,7 @@ class Account:
             "$top": top,
             "$expand": expand,
         }
-        return self.client.request(
+        return await self.client.request(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},

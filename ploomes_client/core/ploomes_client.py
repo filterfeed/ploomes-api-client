@@ -1,9 +1,7 @@
 import time
 import math
-import requests
-import logging
 from urllib.parse import urlencode
-from requests.exceptions import RequestException
+from requests.exceptions import RequestException, HTTPError
 from ploomes_client.sessions.session_manager import SessionManager
 from ploomes_client.core.response import Response
 from threading import Lock
@@ -45,7 +43,13 @@ class PloomesClient:
     _shared_last_429_time = 0  # Timestamp of the last 429 response received
     MAX_RATE_LIMIT_TOKENS = 120  # Maximum number of tokens allowed to prevent excessive accumulation during idle times
 
-    def __init__(self, api_key, rate_limit_tokens=120, token_refresh_rate=2) -> None:
+    def __init__(
+        self,
+        api_key,
+        rate_limit_tokens=120,
+        token_refresh_rate=2,
+        max_retries=MAX_RETRIES,
+    ) -> None:
         """
         Initializes the PloomesClient with the given API key, rate limit tokens, and token refresh rate.
 
@@ -56,8 +60,9 @@ class PloomesClient:
         """
         self.base_url = "https://public-api2.ploomes.com"
         self.api_key = api_key
-        self.headers = {"User-Key": api_key, "Content-Type": "application/json"}
+        self.headers = {"User-Key": api_key}
         self.session_manager = SessionManager(self.headers)
+        self.max_retries = max_retries
         if rate_limit_tokens is not None:
             self.__class__._shared_rate_limit_tokens = rate_limit_tokens
         if token_refresh_rate is not None:
@@ -92,7 +97,7 @@ class PloomesClient:
         self._shared_hold_until = (
             time.time() + delay
         )  # Calculate the timestamp until which requests are held
-        logger.warning("Holding all requests for %d seconds", delay)
+        logger.info("Holding all requests for %d seconds", delay)
         time.sleep(delay)  # Wait for the specified delay
 
     def _check_hold_status(self):
@@ -145,7 +150,6 @@ class PloomesClient:
             # Replenish tokens according to the token refresh rate and time since the last request
             self._replenish_tokens()
 
-            # Wait for a token to become available if there are no tokens currently available
             while self._shared_rate_limit_tokens < 1:
                 # Compute sleep time based on token refresh rate; sleep_time = 1 / 2 = 0.5 seconds
                 sleep_time = 1 / self._token_refresh_rate
@@ -161,58 +165,78 @@ class PloomesClient:
 
     def _retry_request(self, method: str, url: str, files=None, **kwargs):
         """
-        Retries a request to the specified URL with exponential backoff.
+        Retries a request to the specified URL with exponential backoff, handling unauthorized status.
 
         Args:
             method (str): HTTP method (e.g., GET, POST).
             url (str): The URL to request.
-            files (Optional): Files to send with the request.
+            files (optional): Files to send with the request.
             **kwargs: Additional arguments passed to the request.
 
         Returns:
-            The JSON response of the request.
+            dict: The JSON response of the request, if successful.
 
         Raises:
-            Exception: If the maximum number of retries is reached.
+            HTTPError: If an HTTP error occurs that is not handled by retries.
         """
-        retries = MAX_RETRIES  # Number of retries allowed
-        delay = (
-            self._shared_exponential_delay
-        ) = 1  # Initial delay for exponential backoff
+        retries = self.max_retries
+        delay = self._shared_exponential_delay
 
         while retries > 0:
-            self._wait_for_token()  # Wait for a rate-limiting token to become available
-            response = None
+            self._wait_for_token()
             try:
                 response = self.session_manager.session.request(
-                    method, url, files=files, **kwargs
+                    method, url, files=files, headers=self.headers, **kwargs
                 )
-                response.raise_for_status()
-                self._shared_exponential_delay = (
-                    1  # Reset the exponential delay after a successful request
-                )
+                response.raise_for_status()  # Will raise HTTPError for error responses
+
+                # Reset delay after a successful request
+                self._shared_exponential_delay = 1
                 return response.json()
-            except RequestException as err:
+
+            except HTTPError as http_err:
+                status_code = response.status_code
+                if status_code == 401:  # Unauthorized access
+                    response_data = {}
+                    try:
+                        response_data = response.json()
+                    except ValueError:
+                        logger.error("Invalid JSON response received.")
+                        return {"@odata.context": None, "@odata.value": []}
+
+                    odata_context = response_data.get("@odata.context")
+                    return {
+                        "@odata.context": odata_context,
+                        "@odata.value": [],
+                    }
+
                 retries -= 1
-                if (
-                    response and response.status_code == 429
-                ):  # HTTP status code for too many requests
-                    self._handle_too_many_requests()  # Handle the 429 status by holding requests
-                else:
-                    delay = min(
-                        delay * 2, 60
-                    )  # Exponential backoff for other exceptions, with a maximum delay of 60 seconds
+                if status_code == 429:  # Too many requests
+                    self._handle_too_many_requests()
+
+                delay = min(
+                    delay * 2, 60
+                )  # Exponential backoff with max delay of 60 seconds
+                logger.warning(
+                    "Request to %s failed with HTTP error: %s. Retries remaining: %d",
+                    url,
+                    http_err,
+                    retries,
+                )
+                time.sleep(delay)
+
+            except RequestException as req_err:
+                retries -= 1
+                delay = min(delay * 2, 60)
                 logger.warning(
                     "Request to %s failed with error: %s. Retries remaining: %d",
                     url,
-                    err,
+                    req_err,
                     retries,
                 )
-                time.sleep(delay)  # Sleep for the calculated delay period
+                time.sleep(delay)
 
-        raise Exception(
-            "Max retries reached"
-        )  # Raise an exception if all retries are exhausted
+        raise HTTPError("Maximum retries reached for request to {}".format(url))
 
     def request(
         self, method: str, path: str, filters=None, payload=None, files=None, **kwargs
@@ -234,7 +258,16 @@ class PloomesClient:
             "?" + urlencode(filters) if filters else ""
         )  # Construct query parameters if filters are provided
         url = self.base_url + path + query_params
-        headers = self.headers if not files else {"User-Key": self.api_key}
+        self.headers = (
+            self.headers
+            if files
+            else {"User-Key": self.api_key, "Content-Type": "application/json"}
+        )
+        if files:
+            self.headers.pop("Content-Type", None)
+
+        # Ensure headers are not duplicated in kwargs
+        kwargs.pop("headers", None)  # Remove headers from kwargs if present
 
         response_values = []
         next_link_count = 0
@@ -243,7 +276,7 @@ class PloomesClient:
         ):  # Follow next links up to a maximum count to prevent infinite loops
             self._wait_for_token()
             result = self._retry_request(
-                method, url, data=payload, files=files, headers=headers, **kwargs
+                method, url, data=payload, files=files, **kwargs
             )
             if result.get("value"):
                 response_values += result["value"]  # Aggregate response values

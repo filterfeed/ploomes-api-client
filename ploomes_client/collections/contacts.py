@@ -1,5 +1,6 @@
+import asyncio
 import json
-import requests
+import httpx
 from ploomes_client.core.ploomes_client import PloomesClient
 from ploomes_client.core.utils import get_file_url
 
@@ -9,7 +10,7 @@ class Contacts:
         self.client = client
         self.path = "/Contacts"
 
-    def get_contacts(
+    async def get_contacts(
         self,
         filter_=None,
         expand=None,
@@ -44,13 +45,15 @@ class Contacts:
             "$top": top,
             "$expand": expand,
         }
-        return self.client.request(
+
+        response = await self.client.request(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
+        return response
 
-    def get_contacts_products(
+    async def get_contacts_products(
         self,
         filter_=None,
         expand=None,
@@ -85,13 +88,54 @@ class Contacts:
             "$top": top,
             "$expand": expand,
         }
-        return self.client.request(
+        return await self.client.request(
             "GET",
             self.path + "@Products",
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    def post_contact(
+    async def get_contacts_origins(
+        self,
+        filter_=None,
+        expand=None,
+        top=None,
+        inlinecount=None,
+        orderby=None,
+        select=None,
+        skip=None,
+    ):
+        """
+        Creates a new contact using the provided payload and filters.
+
+        Args:
+            payload (dict): The data for the contact to be created.
+            filter_ (str, optional): OData filter string.
+            expand (str, optional): Expand related entities.
+            top (int, optional): Maximum number of results to return.
+            inlinecount (str, optional): Option for inline count.
+            orderby (str, optional): Order by clause.
+            select (str, optional): Select specific properties.
+            skip (int, optional): Number of results to skip.
+
+        Returns:
+            Response: The response object containing the result of the POST request.
+        """
+        filters = {
+            "$filter": filter_,
+            "$inlinecount": inlinecount,
+            "$orderby": orderby,
+            "$select": select,
+            "$skip": skip,
+            "$top": top,
+            "$expand": expand,
+        }
+        return await self.client.request(
+            "GET",
+            self.path + "@Origins",
+            filters={k: v for k, v in filters.items() if v is not None},
+        )
+
+    async def post_contact(
         self,
         payload,
         filter_=None,
@@ -112,14 +156,14 @@ class Contacts:
             "$expand": expand,
         }
         payload_json = json.dumps(payload)
-        return self.client.request(
+        return await self.client.request(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    def post_contact_products(
+    async def post_contact_products(
         self,
         payload,
         filter_=None,
@@ -140,14 +184,42 @@ class Contacts:
             "$expand": expand,
         }
         payload_json = json.dumps(payload)
-        return self.client.request(
+        return await self.client.request(
             "POST",
             self.path + "@Products",
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    def patch_contact(
+    async def post_contact_origins(
+        self,
+        payload,
+        filter_=None,
+        expand=None,
+        top=None,
+        inlinecount=None,
+        orderby=None,
+        select=None,
+        skip=None,
+    ):
+        filters = {
+            "$filter": filter_,
+            "$inlinecount": inlinecount,
+            "$orderby": orderby,
+            "$select": select,
+            "$skip": skip,
+            "$top": top,
+            "$expand": expand,
+        }
+        payload_json = json.dumps(payload)
+        return await self.client.request(
+            "POST",
+            self.path + "@Origins",
+            filters={k: v for k, v in filters.items() if v is not None},
+            payload=payload_json,
+        )
+
+    async def patch_contact(
         self,
         id_: int,
         payload: dict,
@@ -186,14 +258,14 @@ class Contacts:
             "$expand": expand,
         }
         payload_json = json.dumps(payload)
-        return self.client.request(
+        return await self.client.request(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    def patch_contact_products(
+    async def patch_contact_products(
         self,
         id_: int,
         payload: dict,
@@ -232,14 +304,14 @@ class Contacts:
             "$expand": expand,
         }
         payload_json = json.dumps(payload)
-        return self.client.request(
+        return await self.client.request(
             "PATCH",
             self.path + f"@Products({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    def delete_contact(self, id_: int):
+    async def delete_contact(self, id_: int):
         """
         Deletes a contact by its ID.
 
@@ -249,9 +321,9 @@ class Contacts:
         Returns:
             dict: The JSON response from the server.
         """
-        return self.client.request("DELETE", self.path + f"({id_})")
+        return await self.client.request("DELETE", self.path + f"({id_})")
 
-    def delete_contact_products(self, id_: int):
+    async def delete_contact_products(self, id_: int):
         """
         Deletes a contact by its ID.
 
@@ -261,31 +333,61 @@ class Contacts:
         Returns:
             dict: The JSON response from the server.
         """
-        return self.client.request("DELETE", self.path + f"@Products({id_})")
+        return await self.client.request("DELETE", self.path + f"@Products({id_})")
 
-    def post_contact_avatar(self, contact_id: int, image_url: str) -> dict:
+    async def post_contact_avatar(self, contact_id: int, image_url: str) -> dict:
         """
         Uploads an avatar for a specific contact.
-
-        Args:
-            contact_id (int): The ID of the contact.
-            image_url (str): The URL of the image to be used as the avatar.
-
-        Returns:
-            dict: The JSON response from the server containing the details of the uploaded avatar.
         """
-        filename = get_file_url(image_url)  # Extract the filename from the URL
-        files = [("file1", (filename, requests.get(image_url).content, "image/jpeg"))]
-        headers = {"User-Key": self.client.api_key}
+        filename = await get_file_url(
+            image_url
+        )  # Ensure this extracts the filename correctly
+        async with httpx.AsyncClient() as client:
+            response = await client.get(image_url)
+            response.raise_for_status()
+            content = response.content
 
-        return self.client.request(
-            "POST",
-            self.path + f"({contact_id})/UploadAvatar",
-            files=files,
-            headers=headers,
+        files = [("file1", (filename, content, "image/jpeg"))]
+
+        return await self.client.request(
+            "POST", self.path + f"({contact_id})/UploadAvatar", files=files
         )
 
-    def check_duplicate_contact(self, payload: dict):
+    async def post_attachment(
+        self, contact_id: int, file_url: str, filename: str
+    ) -> dict:
+        """
+        Uploads an avatar for a specific contact.
+        """
+        response = await self._download_file(file_url)
+
+        files = [("file1", (filename, response.raw, response.headers["Content-Type"]))]
+
+        return await self.client.request(
+            "POST",
+            self.path + f"({contact_id})/UploadFile?$expand=Attachments",
+            files=files,
+        )
+
+    async def _download_file(
+        self, file_url: str, retries: int = 3, timeout: int = 10
+    ) -> httpx.Response:
+        """Download the file from the provided URL with retry logic and error handling."""
+        for attempt in range(retries):
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(file_url, timeout=timeout)
+                    response.raise_for_status()
+                    return response
+            except (httpx.HTTPStatusError, httpx.RequestError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(2**attempt)  # Exponential backoff
+                else:
+                    raise httpx.HTTPStatusError(
+                        f"Failed to download file from {file_url} after {retries} attempts"
+                    ) from e
+
+    async def check_duplicate_contact(self, payload: dict):
         """
         Checks for a duplicate contact by sending a POST request to the API.
 
@@ -296,6 +398,6 @@ class Contacts:
             dict: The JSON response from the server containing the result.
         """
         payload_json = json.dumps(payload)
-        return self.client.request(
+        return await self.client.request(
             "POST", self.path + "/IsDuplicate", payload=payload_json
         )

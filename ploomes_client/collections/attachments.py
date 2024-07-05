@@ -1,13 +1,14 @@
+import httpx
 import json
 from ploomes_client.core.ploomes_client import PloomesClient
 
 
-class Tables:
+class Attachments:
     def __init__(self, client: PloomesClient) -> None:
         self.client = client
-        self.path = "/Tables"
+        self.path = "/Attachments"
 
-    async def get_tables(
+    async def get_attachments_folder(
         self,
         filter_=None,
         expand=None,
@@ -18,7 +19,7 @@ class Tables:
         skip=None,
     ):
         """
-        Retrieves tables based on the provided filters.
+        Retrieves attachments based on the provided filters.
 
         Args:
             filter_ (str, optional): OData filter string.
@@ -30,7 +31,7 @@ class Tables:
             expand (str, optional): Expand related entities.
 
         Returns:
-            dict: The JSON response from the server containing the tables.
+            dict: The JSON response from the server containing the attachments.
         """
         filters = {
             "$filter": filter_,
@@ -41,14 +42,13 @@ class Tables:
             "$top": top,
             "$expand": expand,
         }
-
         return await self.client.request(
             "GET",
-            self.path,
+            self.path + "@Folders",
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_user(
+    async def post_attachments_folder(
         self,
         payload,
         filter_=None,
@@ -59,22 +59,6 @@ class Tables:
         select=None,
         skip=None,
     ):
-        """
-        Creates a new user.
-
-        Args:
-            payload (dict): The user data.
-            filter_ (str, optional): OData filter string.
-            inlinecount (str, optional): Option for inline count.
-            orderby (str, optional): Order by clause.
-            select (str, optional): Select specific properties.
-            skip (int, optional): Number of results to skip.
-            top (int, optional): Maximum number of results to return.
-            expand (str, optional): Expand related entities.
-
-        Returns:
-            dict: The JSON response from the server.
-        """
         filters = {
             "$filter": filter_,
             "$inlinecount": inlinecount,
@@ -87,12 +71,12 @@ class Tables:
         payload_json = json.dumps(payload)
         return await self.client.request(
             "POST",
-            self.path,
+            self.path + "@Folders",
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    async def patch_user(
+    async def patch_attachment_folder(
         self,
         id_: int,
         payload: dict,
@@ -105,11 +89,11 @@ class Tables:
         skip=None,
     ):
         """
-        Updates a user by its ID.
+        Updates a attachment by its ID with specific fields.
 
         Args:
-            id_ (int): The ID of the user.
-            payload (dict): The new data for the user.
+            id_ (int): The ID of the attachment to be updated.
+            payload (dict): Fields to be updated in the attachment.
             filter_ (str, optional): OData filter string.
             inlinecount (str, optional): Option for inline count.
             orderby (str, optional): Order by clause.
@@ -133,22 +117,115 @@ class Tables:
         payload_json = json.dumps(payload)
         return await self.client.request(
             "PATCH",
-            self.path + f"({id_})",
+            self.path + f"@Folders({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    async def delete_user(self, id_: int):
+    async def delete_attachment_folder(self, id_: int):
         """
-        Deletes a user by its ID.
+        Deletes a attachment by its ID.
 
         Args:
-            id_ (int): The ID of the user.
+            id_ (int): The ID of the attachment to be deleted.
 
         Returns:
             dict: The JSON response from the server.
         """
+        return await self.client.request("DELETE", self.path + f"@Folders({id_})")
+
+    async def post_attachment(self, file_url: str, folder_id: int):
+        # Download the file from the URL
+        async with httpx.AsyncClient() as client:
+            response = await client.get(file_url, stream=True)
+            response.raise_for_status()
+
+            # Extract filename
+            filename = file_url.split("/")[-1]
+
+            # Prepare multipart/form-data payload
+            files = {
+                "file": (
+                    filename,
+                    await response.aread(),
+                    response.headers["Content-Type"],
+                )
+            }
+            data = {"folderId": str(folder_id)}
+
+            # Headers including the User-Key
+            headers = {"User-Key": self.client.api_key}
+
+            # POST request
+            upload_response = await client.post(
+                "https://public-api2.ploomes.com/Attachments@Items/FormData",
+                files=files,
+                data=data,
+                headers=headers,
+            )
+
+            upload_response.raise_for_status()
+            upload_response_json = upload_response.json()
+
+            return {
+                "@odata.context": upload_response_json["@odata.context"],
+                "value": upload_response_json.get("value"),
+            }
+
+    async def patch_attachment(
+        self,
+        id_: int,
+        payload: dict,
+        filter_=None,
+        expand=None,
+        top=None,
+        inlinecount=None,
+        orderby=None,
+        select=None,
+        skip=None,
+    ):
+        """
+        Updates a attachment by its ID with specific fields.
+
+        Args:
+            id_ (int): The ID of the attachment to be updated.
+            payload (dict): Fields to be updated in the attachment.
+            filter_ (str, optional): OData filter string.
+            inlinecount (str, optional): Option for inline count.
+            orderby (str, optional): Order by clause.
+            select (str, optional): Select specific properties.
+            skip (int, optional): Number of results to skip.
+            top (int, optional): Maximum number of results to return.
+            expand (str, optional): Expand related entities.
+
+        Returns:
+            dict: The JSON response from the server.
+        """
+        filters = {
+            "$filter": filter_,
+            "$inlinecount": inlinecount,
+            "$orderby": orderby,
+            "$select": select,
+            "$skip": skip,
+            "$top": top,
+            "$expand": expand,
+        }
+        payload_json = json.dumps(payload)
         return await self.client.request(
-            "DELETE",
-            self.path + f"({id_})",
+            "PATCH",
+            self.path + f"@Items({id_})",
+            filters={k: v for k, v in filters.items() if v is not None},
+            payload=payload_json,
         )
+
+    async def delete_attachment(self, id_: int):
+        """
+        Deletes a attachment by its ID.
+
+        Args:
+            id_ (int): The ID of the attachment to be deleted.
+
+        Returns:
+            dict: The JSON response from the server.
+        """
+        return await self.client.request("DELETE", self.path + f"@Items({id_})")

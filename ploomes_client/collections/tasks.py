@@ -7,7 +7,7 @@ class Tasks:
         self.client = client
         self.path = "/Tasks"
 
-    def get_tasks(
+    async def get_tasks(
         self,
         filter_=None,
         expand=None,
@@ -41,13 +41,13 @@ class Tasks:
             "$top": top,
             "$expand": expand,
         }
-        return self.client.request(
+        return await self.client.request(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    def post_task(
+    async def post_task(
         self,
         payload,
         filter_=None,
@@ -84,14 +84,14 @@ class Tasks:
             "$expand": expand,
         }
         payload_json = json.dumps(payload)
-        return self.client.request(
+        return await self.client.request(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    def patch_task(
+    async def patch_task(
         self,
         id_: int,
         payload: dict,
@@ -130,14 +130,14 @@ class Tasks:
             "$expand": expand,
         }
         payload_json = json.dumps(payload)
-        return self.client.request(
+        return await self.client.request(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
             payload=payload_json,
         )
 
-    def delete_task(self, id_: int):
+    async def delete_task(self, id_: int):
         """
         Deletes a task by its ID.
 
@@ -147,7 +147,7 @@ class Tasks:
         Returns:
             dict: The JSON response from the server.
         """
-        return self.client.request(
+        return await self.client.request(
             "DELETE",
             self.path + f"({id_})",
         )
