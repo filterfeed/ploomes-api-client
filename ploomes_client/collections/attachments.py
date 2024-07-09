@@ -68,12 +68,12 @@ class Attachments:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "POST",
             self.path + "@Folders",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def patch_attachment_folder(
@@ -114,12 +114,12 @@ class Attachments:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "PATCH",
             self.path + f"@Folders({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def delete_attachment_folder(self, id_: int):
@@ -210,12 +210,12 @@ class Attachments:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "PATCH",
             self.path + f"@Items({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def delete_attachment(self, id_: int):

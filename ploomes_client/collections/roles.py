@@ -84,12 +84,12 @@ class Roles:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def patch_roles(
@@ -130,12 +130,12 @@ class Roles:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def delete_roles(self, id_: int):

@@ -13,8 +13,7 @@ class Response:
 
     @property
     def first(self):
-        """Retrieve the first value from the "value" attribute.
-
+        """Retrieve the first value from the 'value' attribute.
         Returns:
             The first value if present; None otherwise.
         """
@@ -23,16 +22,14 @@ class Response:
 
     @property
     def all(self):
-        """Retrieve all values from the "value" attribute.
-
+        """Retrieve all values from the 'value' attribute.
         Returns:
-            list: All values in the "value" attribute; an empty list if not present.
+            list: All values in the 'value' attribute; an empty list if not present.
         """
-        return await self.raw.get("value", [])
+        return self.raw.get("value", [])
 
     def to_json(self):
         """Serialize the raw data to a JSON formatted string.
-
         Returns:
             str: A JSON formatted string representing the raw data.
         """

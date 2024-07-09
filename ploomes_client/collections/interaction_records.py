@@ -67,12 +67,12 @@ class InteractionRecords:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def post_interaction_record_comment(
@@ -96,12 +96,12 @@ class InteractionRecords:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "POST",
             self.path + f"({id_})" + "/NewComment",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def patch_interaction_record(
@@ -142,12 +142,12 @@ class InteractionRecords:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def delete_interaction_record(self, id_: int):

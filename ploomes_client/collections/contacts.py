@@ -1,6 +1,8 @@
 import asyncio
 import json
 import httpx
+import base64
+from io import BytesIO
 from ploomes_client.core.ploomes_client import PloomesClient
 from ploomes_client.core.utils import get_file_url
 
@@ -155,12 +157,12 @@ class Contacts:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def post_contact_products(
@@ -183,12 +185,12 @@ class Contacts:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "POST",
             self.path + "@Products",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def post_contact_origins(
@@ -211,12 +213,12 @@ class Contacts:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "POST",
             self.path + "@Origins",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def patch_contact(
@@ -257,12 +259,12 @@ class Contacts:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def patch_contact_products(
@@ -303,12 +305,12 @@ class Contacts:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
             "PATCH",
             self.path + f"@Products({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
     async def delete_contact(self, id_: int):
@@ -369,6 +371,33 @@ class Contacts:
             files=files,
         )
 
+    async def post_attachment_from_base64(
+        self, contact_id: int, base64_data: str, filename: str
+    ) -> dict:
+        """
+        Uploads a file for a specific contact from base64 encoded data, determining the content type from the data itself.
+        """
+        # Extract content type and decode the base64 string to bytes
+        content_type, base64_encoded = base64_data.split(";base64,")
+        content_type = content_type.split(":")[1]  # Get only the type part
+        file_data = base64.b64decode(base64_encoded)
+
+        # Create a file-like object from bytes
+        file_like_object = BytesIO(file_data)
+        file_like_object.name = filename
+
+        # Prepare the file tuple for the 'files' parameter in requests
+        files = [("file1", (filename, file_like_object, content_type))]
+
+        # Make the POST request to upload the file
+        response = self.client.request(
+            "POST",
+            self.path + f"({contact_id})/UploadFile?$expand=Attachments",
+            files=files,
+        )
+
+        return await response
+
     async def _download_file(
         self, file_url: str, retries: int = 3, timeout: int = 10
     ) -> httpx.Response:
@@ -397,7 +426,7 @@ class Contacts:
         Returns:
             dict: The JSON response from the server containing the result.
         """
-        payload_json = json.dumps(payload)
+        
         return await self.client.request(
-            "POST", self.path + "/IsDuplicate", payload=payload_json
+            "POST", self.path + "/IsDuplicate", payload=payload
         )

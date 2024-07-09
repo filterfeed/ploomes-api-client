@@ -5,6 +5,7 @@ import logging
 import asyncio
 from threading import Lock
 from urllib.parse import urlencode
+from ploomes_client.core.response import Response
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -12,7 +13,7 @@ MAX_RETRIES = 5
 MAX_NEXT_LINKS = 10  # Maximum number of next links to follow to prevent infinite loops
 
 
-class PloomesClient:
+class APloomesClient:
     """
     An asynchronous client to interact with the Ploomes API using httpx for HTTP requests.
     """
@@ -113,7 +114,9 @@ class PloomesClient:
                 retries -= 1
                 await asyncio.sleep(min(self._shared_exponential_delay * 2, 60))
         raise httpx.HTTPStatusError(
-            "Maximum retries reached for request to {}".format(url)
+            f"Maximum retries reached for request to {url}",
+            request=method,
+            response=response.json(),
         )
 
     async def request(
@@ -148,7 +151,6 @@ class PloomesClient:
             url = result.get("@odata.nextLink")
             next_link_count += 1
 
-        return {
-            "@odata.context": result.get("@odata.context"),
-            "value": response_values,
-        }
+        return Response(
+            {"@odata.context": result["@odata.context"], "value": response_values}
+        )

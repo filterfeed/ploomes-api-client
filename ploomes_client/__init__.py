@@ -1,4 +1,5 @@
 from .core.ploomes_client import PloomesClient
+from .core.async_ploomes_client import APloomesClient
 from .collections import (
     Attachments,
     Account,
@@ -18,6 +19,7 @@ from .collections import (
 
 __all__ = [
     "PloomesClient",
+    "APloomesClient",
     "Attachments",
     "Account",
     "Cities",

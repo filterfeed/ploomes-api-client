@@ -1,5 +1,6 @@
 import time
 import math
+import logging
 from urllib.parse import urlencode
 from requests.exceptions import RequestException, HTTPError
 from ploomes_client.sessions.session_manager import SessionManager
