@@ -7,7 +7,7 @@ class Fields:
         self.client = client
         self.path = "/Fields"
 
-    async def get_fields(
+    async def aget_fields(
         self,
         filter_=None,
         expand=None,
@@ -41,13 +41,13 @@ class Fields:
             "$top": top,
             "$expand": expand,
         }
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_field(
+    async def apost_field(
         self,
         payload,
         filter_=None,
@@ -67,10 +67,10 @@ class Fields:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )

@@ -7,7 +7,7 @@ class Products:
         self.client = client
         self.path = "/Products"
 
-    async def get_products(
+    async def aget_products(
         self,
         filter_=None,
         expand=None,
@@ -41,13 +41,13 @@ class Products:
             "$top": top,
             "$expand": expand,
         }
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_product(
+    async def apost_product(
         self,
         payload,
         filter_=None,
@@ -67,15 +67,15 @@ class Products:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def patch_product(
+    async def apatch_product(
         self,
         id_: int,
         payload: dict,
@@ -113,15 +113,15 @@ class Products:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def delete_product(self, id_: int):
+    async def adelete_product(self, id_: int):
         """
         Deletes a product by its ID.
 
@@ -131,4 +131,4 @@ class Products:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request("DELETE", self.path + f"({id_})")
+        return await self.client.arequest("DELETE", self.path + f"({id_})")

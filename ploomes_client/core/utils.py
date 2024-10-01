@@ -2,7 +2,7 @@ import secrets
 import string
 
 
-async def get_file_url(url):
+async def aget_file_url(url):
     filename = url.split("/")[-1]  # get the filename from the URL
     if "." not in filename:  # if there's no extension
         return url  # return the original URL
@@ -10,7 +10,7 @@ async def get_file_url(url):
     return url.split("?")[0]
 
 
-async def generate_random_alphanumeric_string(length: int) -> str:
+async def agenerate_random_alphanumeric_string(length: int) -> str:
     """
     Generates a random alphanumeric string of the specified length.
 
@@ -25,7 +25,7 @@ async def generate_random_alphanumeric_string(length: int) -> str:
     return random_string
 
 
-async def generate_email() -> str:
+async def agenerate_email() -> str:
     """
     Generates an email address with a long random alphanumeric string.
 
@@ -34,7 +34,7 @@ async def generate_email() -> str:
     Returns:
         str: The generated email address.
     """
-    random_string = generate_random_alphanumeric_string(
+    random_string = agenerate_random_alphanumeric_string(
         20
     )  # Example: length of 20 characters
     email = f"user{random_string}@filterfeed.pro"

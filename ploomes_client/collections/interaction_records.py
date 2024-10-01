@@ -7,7 +7,7 @@ class InteractionRecords:
         self.client = client
         self.path = "/InteractionRecords"
 
-    async def get_interaction_records(
+    async def aget_interaction_records(
         self,
         filter_=None,
         expand=None,
@@ -41,13 +41,13 @@ class InteractionRecords:
             "$top": top,
             "$expand": expand,
         }
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_interaction_record(
+    async def apost_interaction_record(
         self,
         payload,
         filter_=None,
@@ -67,15 +67,15 @@ class InteractionRecords:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def post_interaction_record_comment(
+    async def apost_interaction_record_comment(
         self,
         id_: int,
         payload: dict,
@@ -96,15 +96,15 @@ class InteractionRecords:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "POST",
             self.path + f"({id_})" + "/NewComment",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def patch_interaction_record(
+    async def apatch_interaction_record(
         self,
         id_: int,
         payload: dict,
@@ -142,15 +142,15 @@ class InteractionRecords:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def delete_interaction_record(self, id_: int):
+    async def adelete_interaction_record(self, id_: int):
         """
         Deletes a interaction record by its ID.
 
@@ -160,7 +160,7 @@ class InteractionRecords:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request(
+        return await self.client.arequest(
             "DELETE",
             self.path + f"({id_})",
         )
