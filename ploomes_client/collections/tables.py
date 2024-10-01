@@ -7,7 +7,7 @@ class Tables:
         self.client = client
         self.path = "/Tables"
 
-    async def get_tables(
+    async def aget_tables(
         self,
         filter_=None,
         expand=None,
@@ -42,13 +42,13 @@ class Tables:
             "$expand": expand,
         }
 
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_user(
+    async def apost_user(
         self,
         payload,
         filter_=None,
@@ -84,15 +84,15 @@ class Tables:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def patch_user(
+    async def apatch_user(
         self,
         id_: int,
         payload: dict,
@@ -130,15 +130,15 @@ class Tables:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def delete_user(self, id_: int):
+    async def adelete_user(self, id_: int):
         """
         Deletes a user by its ID.
 
@@ -148,7 +148,7 @@ class Tables:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request(
+        return await self.client.arequest(
             "DELETE",
             self.path + f"({id_})",
         )

@@ -6,7 +6,7 @@ class Account:
         self.client = client
         self.path = "/Account"
 
-    async def get_account(
+    async def aget_account(
         self,
         filter_=None,
         expand=None,
@@ -40,7 +40,7 @@ class Account:
             "$top": top,
             "$expand": expand,
         }
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},

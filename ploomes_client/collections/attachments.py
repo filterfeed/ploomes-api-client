@@ -8,7 +8,7 @@ class Attachments:
         self.client = client
         self.path = "/Attachments"
 
-    async def get_attachments_folder(
+    async def aget_attachments_folder(
         self,
         filter_=None,
         expand=None,
@@ -42,13 +42,13 @@ class Attachments:
             "$top": top,
             "$expand": expand,
         }
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path + "@Folders",
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_attachments_folder(
+    async def apost_attachments_folder(
         self,
         payload,
         filter_=None,
@@ -68,15 +68,15 @@ class Attachments:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "POST",
             self.path + "@Folders",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def patch_attachment_folder(
+    async def apatch_attachment_folder(
         self,
         id_: int,
         payload: dict,
@@ -114,15 +114,15 @@ class Attachments:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "PATCH",
             self.path + f"@Folders({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def delete_attachment_folder(self, id_: int):
+    async def adelete_attachment_folder(self, id_: int):
         """
         Deletes a attachment by its ID.
 
@@ -132,9 +132,9 @@ class Attachments:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request("DELETE", self.path + f"@Folders({id_})")
+        return await self.client.arequest("DELETE", self.path + f"@Folders({id_})")
 
-    async def post_attachment(self, file_url: str, folder_id: int):
+    async def apost_attachment(self, file_url: str, folder_id: int):
         # Download the file from the URL
         async with httpx.AsyncClient() as client:
             response = await client.get(file_url, stream=True)
@@ -172,7 +172,7 @@ class Attachments:
                 "value": upload_response_json.get("value"),
             }
 
-    async def patch_attachment(
+    async def apatch_attachment(
         self,
         id_: int,
         payload: dict,
@@ -210,15 +210,15 @@ class Attachments:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "PATCH",
             self.path + f"@Items({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def delete_attachment(self, id_: int):
+    async def adelete_attachment(self, id_: int):
         """
         Deletes a attachment by its ID.
 
@@ -228,4 +228,4 @@ class Attachments:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request("DELETE", self.path + f"@Items({id_})")
+        return await self.client.arequest("DELETE", self.path + f"@Items({id_})")

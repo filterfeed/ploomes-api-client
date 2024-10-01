@@ -7,7 +7,7 @@ class Tasks:
         self.client = client
         self.path = "/Tasks"
 
-    async def get_tasks(
+    async def aget_tasks(
         self,
         filter_=None,
         expand=None,
@@ -41,13 +41,13 @@ class Tasks:
             "$top": top,
             "$expand": expand,
         }
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_task(
+    async def apost_task(
         self,
         payload,
         filter_=None,
@@ -83,15 +83,15 @@ class Tasks:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def patch_task(
+    async def apatch_task(
         self,
         id_: int,
         payload: dict,
@@ -129,15 +129,15 @@ class Tasks:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def delete_task(self, id_: int):
+    async def adelete_task(self, id_: int):
         """
         Deletes a task by its ID.
 
@@ -147,7 +147,7 @@ class Tasks:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request(
+        return await self.client.arequest(
             "DELETE",
             self.path + f"({id_})",
         )

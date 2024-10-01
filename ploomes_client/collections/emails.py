@@ -7,7 +7,7 @@ class Emails:
         self.client = client
         self.path = "/Emails"
 
-    async def get_emails(
+    async def aget_emails(
         self,
         filter_=None,
         expand=None,
@@ -42,13 +42,13 @@ class Emails:
             "$expand": expand,
         }
 
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_email(
+    async def apost_email(
         self,
         payload,
         filter_=None,
@@ -84,15 +84,15 @@ class Emails:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def patch_email(
+    async def apatch_email(
         self,
         id_: int,
         payload: dict,
@@ -130,15 +130,15 @@ class Emails:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def delete_email(self, id_: int):
+    async def adelete_email(self, id_: int):
         """
         Deletes a email by its ID.
 
@@ -148,7 +148,7 @@ class Emails:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request(
+        return await self.client.arequest(
             "DELETE",
             self.path + f"({id_})",
         )

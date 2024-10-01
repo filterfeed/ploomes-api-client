@@ -6,7 +6,7 @@ class Cities:
         self.client = client
         self.path = "/Cities"
 
-    async def get_cities(
+    async def aget_cities(
         self,
         filter_=None,
         expand=None,
@@ -40,7 +40,7 @@ class Cities:
             "$top": top,
             "$expand": expand,
         }
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},

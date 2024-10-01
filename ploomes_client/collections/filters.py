@@ -7,7 +7,7 @@ class Filters:
         self.client = client
         self.path = "/Filters"
 
-    async def get_filters(
+    async def aget_filters(
         self,
         filter_=None,
         expand=None,
@@ -42,13 +42,13 @@ class Filters:
             "$expand": expand,
         }
 
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_filter(
+    async def apost_filter(
         self,
         payload,
         filter_=None,
@@ -84,15 +84,15 @@ class Filters:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def patch_filter(
+    async def apatch_filter(
         self,
         id_: int,
         payload: dict,
@@ -130,15 +130,15 @@ class Filters:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def delete_filter(self, id_: int):
+    async def adelete_filter(self, id_: int):
         """
         Deletes a filter by its ID.
 
@@ -148,7 +148,7 @@ class Filters:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request(
+        return await self.client.arequest(
             "DELETE",
             self.path + f"({id_})",
         )

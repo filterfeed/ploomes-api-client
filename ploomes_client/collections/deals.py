@@ -7,7 +7,7 @@ class Deals:
         self.client = client
         self.path = "/Deals"
 
-    async def get_deals(
+    async def aget_deals(
         self,
         filter_=None,
         expand=None,
@@ -41,13 +41,13 @@ class Deals:
             "$top": top,
             "$expand": expand,
         }
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_deal(
+    async def apost_deal(
         self,
         payload,
         filter_=None,
@@ -67,15 +67,15 @@ class Deals:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def win_deal(self, id_: int):
+    async def awin_deal(self, id_: int):
         """
         Win a deal by its ID.
 
@@ -85,11 +85,11 @@ class Deals:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request(
+        return await self.client.arequest(
             "POST", self.path + f"({id_})/Win", payload=json.dumps({})
         )
 
-    async def lose_deal(self, id_: int):
+    async def alose_deal(self, id_: int):
         """
         Lose a deal by its ID.
 
@@ -99,11 +99,11 @@ class Deals:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request(
+        return await self.client.arequest(
             "POST", self.path + f"({id_})/Lose", payload=json.dumps({})
         )
 
-    async def patch_deal(
+    async def apatch_deal(
         self,
         id_: int,
         payload: dict,
@@ -141,15 +141,15 @@ class Deals:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def delete_deal(self, id_: int):
+    async def adelete_deal(self, id_: int):
         """
         Deletes a deal by its ID.
 
@@ -159,7 +159,7 @@ class Deals:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request(
+        return await self.client.arequest(
             "DELETE",
             self.path + f"({id_})",
         )

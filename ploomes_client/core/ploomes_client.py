@@ -280,8 +280,8 @@ class PloomesClient:
             )
             if result.get("value"):
                 response_values += result["value"]  # Aggregate response values
-            url = result.get("@odata.nextLink")  # Get the next link for pagination
-            next_link_count += 1
+                url = result.get("@odata.nextLink")  # Get the next link for pagination
+                next_link_count += 1
 
         return Response(
             {"@odata.context": result["@odata.context"], "value": response_values}

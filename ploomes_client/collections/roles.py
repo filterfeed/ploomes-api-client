@@ -7,7 +7,7 @@ class Roles:
         self.client = client
         self.path = "/Roles"
 
-    async def get_roles(
+    async def aget_roles(
         self,
         filter_=None,
         expand=None,
@@ -42,13 +42,13 @@ class Roles:
             "$expand": expand,
         }
 
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-    async def post_roles(
+    async def apost_roles(
         self,
         payload,
         filter_=None,
@@ -84,15 +84,15 @@ class Roles:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def patch_roles(
+    async def apatch_roles(
         self,
         id_: int,
         payload: dict,
@@ -130,15 +130,15 @@ class Roles:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def delete_roles(self, id_: int):
+    async def adelete_roles(self, id_: int):
         """
         Deletes a roles by its ID.
 
@@ -148,7 +148,7 @@ class Roles:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request(
+        return await self.client.arequest(
             "DELETE",
             self.path + f"({id_})",
         )

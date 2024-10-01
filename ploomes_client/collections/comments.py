@@ -7,7 +7,7 @@ class Comments:
         self.client = client
         self.path = "/Comments"
 
-    async def patch_comment(
+    async def apatch_comment(
         self,
         id_: int,
         payload: dict,
@@ -45,15 +45,15 @@ class Comments:
             "$top": top,
             "$expand": expand,
         }
-        payload_json = json.dumps(payload)
-        return await self.client.request(
+        
+        return await self.client.arequest(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
-            payload=payload_json,
+            payload=payload,
         )
 
-    async def delete_comment(self, id_: int):
+    async def adelete_comment(self, id_: int):
         """
         Deletes a contact by its ID.
 
@@ -63,7 +63,7 @@ class Comments:
         Returns:
             dict: The JSON response from the server.
         """
-        return await self.client.request(
+        return await self.client.arequest(
             "DELETE",
             self.path + f"({id_})",
         )
