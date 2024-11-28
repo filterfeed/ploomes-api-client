@@ -28,7 +28,7 @@ class Response:
         Returns:
             list: All values in the "value" attribute; an empty list if not present.
         """
-        return await self.raw.get("value", [])
+        return self.raw.get("value", [])
 
     def to_json(self):
         """Serialize the raw data to a JSON formatted string.

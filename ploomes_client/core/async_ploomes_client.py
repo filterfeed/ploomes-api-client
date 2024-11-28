@@ -4,12 +4,77 @@ import httpx
 import logging
 import asyncio
 from urllib.parse import urlencode
-from ploomes_client.core.response import Response
 from asyncio import Lock
+from ploomes_client.core.response import Response
 
 logger = logging.getLogger(__name__)
 MAX_RETRIES = 5
 MAX_NEXT_LINKS = 10  # Maximum number of next links to follow to prevent infinite loops
+
+
+class RateLimiter:
+    """
+    A rate limiter class implementing a token bucket algorithm to control the rate of API requests.
+    """
+
+    def __init__(self, tokens, refresh_rate):
+        self._lock = Lock()
+        self.tokens = tokens
+        self.refresh_rate = refresh_rate  # Tokens replenished per second
+        self.max_tokens = tokens
+        self.last_token_replenish_time = time.time()
+        self.exponential_delay = 1
+        self.hold_requests_flag = False
+        self.hold_until = 0
+        self.hold_retries = 0
+        self.last_429_time = 0
+
+    async def wait_for_token(self):
+        async with self._lock:
+            await self.check_hold_status()
+            if self.hold_requests_flag:
+                await self.hold_requests(self.hold_until - time.time())
+            await self.replenish_tokens()
+            while self.tokens < 1:
+                sleep_time = max(1 / self.refresh_rate, 0.1)
+                logger.warning(
+                    "No tokens available, waiting for %f seconds", sleep_time
+                )
+                await asyncio.sleep(sleep_time)
+                await self.replenish_tokens()
+            self.tokens -= 1
+            logger.debug(f"Token consumed, remaining tokens: {self.tokens}")
+
+    async def replenish_tokens(self):
+        current_time = time.time()
+        elapsed_time = current_time - self.last_token_replenish_time
+        tokens_to_replenish = math.floor(elapsed_time * self.refresh_rate)
+        if tokens_to_replenish > 0:
+            self.tokens = min(self.tokens + tokens_to_replenish, self.max_tokens)
+            self.last_token_replenish_time = current_time
+            logger.debug(
+                f"Tokens replenished: {tokens_to_replenish}, Total tokens: {self.tokens}"
+            )
+
+    async def hold_requests(self, delay):
+        self.hold_requests_flag = True
+        self.hold_until = time.time() + delay
+        logger.info("Holding all requests for %d seconds", delay)
+        await asyncio.sleep(delay)
+
+    async def check_hold_status(self):
+        if self.hold_requests_flag and time.time() > self.hold_until:
+            self.hold_requests_flag = False
+            self.hold_retries = 0
+            self.exponential_delay = 1
+            logger.info("Resuming requests")
+
+    async def handle_too_many_requests(self):
+        self.exponential_delay = min(self.exponential_delay * 2, 60)
+        delay = self.exponential_delay
+        self.last_429_time = time.time()
+        self.hold_retries += 1
+        await self.hold_requests(delay)
 
 
 class APloomesClient:
@@ -17,22 +82,11 @@ class APloomesClient:
     An asynchronous client to interact with the Ploomes API using httpx for HTTP requests.
     """
 
-    _lock = Lock()
-    _shared_rate_limit_tokens = 120
-    _shared_last_request_time = time.time()
-    _token_refresh_rate = 2
-    _shared_exponential_delay = 1
-    _shared_hold_requests = False
-    _shared_hold_until = 0
-    _shared_hold_retries = 0
-    _shared_last_429_time = 0
-    MAX_RATE_LIMIT_TOKENS = 120
+    rate_limiter = RateLimiter(tokens=120, refresh_rate=2)
 
     def __init__(
         self,
         api_key,
-        rate_limit_tokens=120,
-        token_refresh_rate=2,
         max_retries=MAX_RETRIES,
     ):
         self.base_url = "https://public-api2.ploomes.com"
@@ -41,53 +95,9 @@ class APloomesClient:
             headers={"User-Key": api_key}, timeout=httpx.Timeout(10.0)
         )
         self.max_retries = max_retries
-        if rate_limit_tokens is not None:
-            self.__class__._shared_rate_limit_tokens = rate_limit_tokens
-        if token_refresh_rate is not None:
-            self.__class__._token_refresh_rate = token_refresh_rate
-
-    async def a_replenish_tokens(self):
-        elapsed_time = time.time() - self._shared_last_request_time
-        tokens_to_replenish = math.floor(elapsed_time * self._token_refresh_rate)
-        self._shared_rate_limit_tokens = min(
-            self._shared_rate_limit_tokens + tokens_to_replenish,
-            self.MAX_RATE_LIMIT_TOKENS,
-        )
-
-    async def a_hold_requests(self, delay):
-        self._shared_hold_requests = True
-        self._shared_hold_until = time.time() + delay
-        logger.info("Holding all requests for %d seconds", delay)
-        await asyncio.sleep(delay)
-
-    async def a_check_hold_status(self):
-        if self._shared_hold_requests and time.time() > self._shared_hold_until:
-            self._shared_hold_requests = False
-            self._shared_hold_retries = 0
-            logger.info("Resuming requests")
-
-    async def a_handle_too_many_requests(self):
-        self._shared_exponential_delay = min(self._shared_exponential_delay * 2, 60)
-        delay = self._shared_exponential_delay
-        self._shared_last_429_time = time.time()
-        self._shared_hold_retries += 1
-        await self.a_hold_requests(delay)
 
     async def a_wait_for_token(self):
-        async with self._lock:
-            await self.a_check_hold_status()
-            if self._shared_hold_requests:
-                await self.a_hold_requests(self._shared_hold_until - time.time())
-            await self.a_replenish_tokens()
-            while self._shared_rate_limit_tokens < 1:
-                sleep_time = 1 / self._token_refresh_rate
-                logger.warning(
-                    "No tokens available, waiting for %f seconds", sleep_time
-                )
-                await asyncio.sleep(sleep_time)
-                await self.a_replenish_tokens()
-            self._shared_last_request_time = time.time()
-            self._shared_rate_limit_tokens -= 1
+        await self.__class__.rate_limiter.wait_for_token()
 
     async def a_retry_request(self, method: str, url: str, **kwargs):
         retries = self.max_retries
@@ -95,25 +105,31 @@ class APloomesClient:
         while retries > 0:
             await self.a_wait_for_token()
             try:
-                response = await self.client.arequest(method, url, **kwargs)
+                response = await self.client.request(method, url, **kwargs)
                 response.raise_for_status()
-                self._shared_exponential_delay = 1
+                self.__class__.rate_limiter.exponential_delay = 1
                 return response.json()
             except httpx.HTTPStatusError as exc:
                 response = exc.response
                 if response.status_code == 401:
-                    return {"@odata.context": None, "@odata.value": []}
+                    logger.error("Unauthorized access. Check your API key.")
+                    return {"@odata.context": None, "value": []}
                 retries -= 1
                 last_exception = exc
                 if response.status_code == 429:
-                    await self.a_handle_too_many_requests()
+                    logger.warning("Received 429 Too Many Requests")
+                    await self.__class__.rate_limiter.handle_too_many_requests()
                 else:
-                    await asyncio.sleep(self._shared_exponential_delay)
+                    logger.error(f"HTTP error {response.status_code}: {response.text}")
+                    await asyncio.sleep(self.__class__.rate_limiter.exponential_delay)
             except httpx.RequestError as exc:
                 retries -= 1
                 last_exception = exc
-                await asyncio.sleep(self._shared_exponential_delay)
-            self._shared_exponential_delay = min(self._shared_exponential_delay * 2, 60)
+                logger.error(f"Request error: {exc}")
+                await asyncio.sleep(self.__class__.rate_limiter.exponential_delay)
+            self.__class__.rate_limiter.exponential_delay = min(
+                self.__class__.rate_limiter.exponential_delay * 2, 60
+            )
         raise Exception(
             f"Maximum retries reached for request to {url}"
         ) from last_exception
@@ -142,15 +158,18 @@ class APloomesClient:
         next_link_count = 0
         result = None
         while url and next_link_count < MAX_NEXT_LINKS:
-            await self.a_wait_for_token()
-            result = await self.a_retry_request(
-                method, url, headers=None, json=payload, files=files, **kwargs
-            )
+            request_kwargs = {}
+            if payload is not None:
+                request_kwargs["json"] = payload
+            if files is not None:
+                request_kwargs["files"] = files
+            request_kwargs.update(kwargs)
+            result = await self.a_retry_request(method, url, **request_kwargs)
             if "value" in result:
                 response_values.extend(result["value"])
             url = result.get("@odata.nextLink")
             next_link_count += 1
 
         return Response(
-            {"@odata.context": result["@odata.context"], "value": response_values}
+            {"@odata.context": result.get("@odata.context"), "value": response_values}
         )

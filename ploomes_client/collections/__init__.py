@@ -13,6 +13,7 @@ from .filters import Filters
 from .tables import Tables
 from .emails import Emails
 from .attachments import Attachments
+from .documents import Documents
 
 __all__ = [
     "Attachments",
@@ -29,5 +30,6 @@ __all__ = [
     "Products",
     "Tasks",
     "Emails",
+    "Documents",
     "Roles",
 ]

@@ -363,7 +363,7 @@ class Contacts:
         """
         response = await self._adownload_file(file_url)
 
-        files = [("file1", (filename, response.raw, response.headers["Content-Type"]))]
+        files = [("file1", (filename, response.content, response.headers["Content-Type"]))]
 
         return await self.client.arequest(
             "POST",
