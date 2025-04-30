@@ -173,7 +173,7 @@ class Documents:
             "$expand": expand,
         }
 
-        return await self.client.request(
+        return await self.client.arequest(
             "GET",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
@@ -216,7 +216,7 @@ class Documents:
             "$expand": expand,
         }
 
-        return await self.client.request(
+        return await self.client.arequest(
             "POST",
             self.path,
             filters={k: v for k, v in filters.items() if v is not None},
@@ -262,7 +262,7 @@ class Documents:
             "$expand": expand,
         }
 
-        return await self.client.request(
+        return await self.client.arequest(
             "PATCH",
             self.path + f"({id_})",
             filters={k: v for k, v in filters.items() if v is not None},
