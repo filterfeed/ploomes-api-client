@@ -20,6 +20,7 @@ from .collections import (
 
 __all__ = [
     "PloomesClient",
+    "APloomesClient",
     "Attachments",
     "Account",
     "Cities",
@@ -34,5 +35,5 @@ __all__ = [
     "Products",
     "Tasks",
     "Emails",
-    "Documents"
+    "Documents",
 ]
