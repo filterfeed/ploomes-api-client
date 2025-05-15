@@ -195,7 +195,7 @@ class Filters:
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
-     def post_filter(
+    def post_filter(
         self,
         payload,
         filter_=None,

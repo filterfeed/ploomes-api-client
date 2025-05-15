@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="ploomes-api-client",
-    version="0.2.145",
+    version="0.2.146",
     packages=find_packages(),
     url="https://github.com/victorfigueredo/ploomes-api-client",
     author="Victor Figueredo",
