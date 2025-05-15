@@ -226,7 +226,7 @@ class InteractionRecords:
             "$top": top,
             "$expand": expand,
         }
-        
+        payload = json.dumps(payload)
         return self.client.request(
             "POST",
             self.path,
@@ -255,6 +255,8 @@ class InteractionRecords:
             "$top": top,
             "$expand": expand,
         }
+        
+        payload = json.dumps(payload)
         
         return self.client.request(
             "POST",
@@ -301,6 +303,8 @@ class InteractionRecords:
             "$top": top,
             "$expand": expand,
         }
+        
+        payload = json.dumps(payload)
         
         return self.client.request(
             "PATCH",
