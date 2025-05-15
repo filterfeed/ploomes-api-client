@@ -230,7 +230,7 @@ class Users:
             "$top": top,
             "$expand": expand,
         }
-        
+        payload = json.dumps(payload)
         return self.client.request(
             "POST",
             self.path,
@@ -276,7 +276,7 @@ class Users:
             "$top": top,
             "$expand": expand,
         }
-        
+        payload = json.dumps(payload)
         return self.client.request(
             "PATCH",
             self.path + f"({id_})",
