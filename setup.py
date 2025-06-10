@@ -2,7 +2,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="ploomes-api-client",
+<<<<<<< Updated upstream
     version="0.2.146",
+=======
+    version="0.2.148",
+>>>>>>> Stashed changes
     packages=find_packages(),
     url="https://github.com/victorfigueredo/ploomes-api-client",
     author="Victor Figueredo",
@@ -24,6 +28,7 @@ setup(
         "requests",
         "ratelimit",
         "pandas",
+        "httpx"
     ],
     python_requires=">=3.6",
 )

@@ -1,5 +1,6 @@
 import httpx
-import json
+import base64
+from io import BytesIO
 from ploomes_client.core.ploomes_client import PloomesClient
 
 
@@ -48,6 +49,34 @@ class Attachments:
             filters={k: v for k, v in filters.items() if v is not None},
         )
 
+    async def apost_attachment_from_base64(
+            self, base64_data: str, filename: str
+        ) -> dict:
+        """
+        Uploads a file to the /Attachments endpoint from base64 encoded data,
+        determining the content type from the data itself.
+        """
+        # Extract content type and decode the base64 string to bytes
+        content_type, base64_encoded = base64_data.split(";base64,")
+        content_type = content_type.split(":")[1]  # Get only the type part
+        file_data = base64.b64decode(base64_encoded)
+
+        # Create a file-like object from bytes
+        file_like_object = BytesIO(file_data)
+        file_like_object.name = filename
+
+        # Prepare the file tuple for the 'files' parameter in requests
+        files = [("file", (filename, file_like_object, content_type))]
+
+        # Make the POST request to upload the file
+        response = self.client.arequest(
+            "POST",
+            self.path + "Attachments",
+            files=files,
+        )
+
+        return await response
+    
     async def apost_attachments_folder(
         self,
         payload,
