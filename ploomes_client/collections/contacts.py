@@ -271,7 +271,7 @@ class Contacts:
             "$top": top,
             "$expand": expand,
         }
-        
+        payload = json.dumps(payload)
         return self.client.request(
             "POST",
             self.path,
@@ -419,6 +419,8 @@ class Contacts:
             "$top": top,
             "$expand": expand,
         }
+
+        payload = json.dumps(payload)
         
         return self.client.request(
             "PATCH",

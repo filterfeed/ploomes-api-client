@@ -231,7 +231,7 @@ class Filters:
             "$top": top,
             "$expand": expand,
         }
-        
+        payload = json.dumps(payload)
         return self.client.request(
             "POST",
             self.path,
@@ -277,7 +277,7 @@ class Filters:
             "$top": top,
             "$expand": expand,
         }
-        
+        payload = json.dumps(payload)
         return self.client.request(
             "PATCH",
             self.path + f"({id_})",
