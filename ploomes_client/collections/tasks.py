@@ -1,4 +1,3 @@
-import json
 from ploomes_client.core.ploomes_client import PloomesClient
 
 
