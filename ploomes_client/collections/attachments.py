@@ -10,14 +10,14 @@ class Attachments:
         self.path = "/Attachments"
 
     async def aget_attachments_folder(
-        self,
-        filter_=None,
-        expand=None,
-        top=None,
-        inlinecount=None,
-        orderby=None,
-        select=None,
-        skip=None,
+            self,
+            filter_=None,
+            expand=None,
+            top=None,
+            inlinecount=None,
+            orderby=None,
+            select=None,
+            skip=None,
     ):
         """
         Retrieves attachments based on the provided filters.
@@ -51,7 +51,7 @@ class Attachments:
 
     async def apost_attachment_from_base64(
             self, base64_data: str, filename: str
-        ) -> dict:
+    ) -> dict:
         """
         Uploads a file to the /Attachments endpoint from base64 encoded data,
         determining the content type from the data itself.
@@ -59,34 +59,51 @@ class Attachments:
         # Extract content type and decode the base64 string to bytes
         content_type, base64_encoded = base64_data.split(";base64,")
         content_type = content_type.split(":")[1]  # Get only the type part
+        # content_type = 'application/json; odata.metadata=minimal'
+
         file_data = base64.b64decode(base64_encoded)
+
+        headers = {"User-Key": self.client.api_key}
 
         # Create a file-like object from bytes
         file_like_object = BytesIO(file_data)
         file_like_object.name = filename
 
         # Prepare the file tuple for the 'files' parameter in requests
-        files = [("file", (filename, file_like_object, content_type))]
+        # files = [{"file", (filename, file_like_object, content_type)}]
+        files = {
+            'file': (
+                filename,
+                file_like_object,
+                content_type
+            )
+        }
+        async with httpx.AsyncClient() as client:
+            # Make the POST request to upload the file
+            response = await client.post(
+                "https://public-api2.ploomes.com/Attachments",
+                files=files,
+                headers=headers,
+            )
 
-        # Make the POST request to upload the file
-        response = self.client.arequest(
-            "POST",
-            self.path + "Attachments",
-            files=files,
-        )
+        response.raise_for_status()
+        upload_response_json = response.json()
 
-        return await response
-    
+        return {
+            "@odata.context": upload_response_json["@odata.context"],
+            "value": upload_response_json.get("value"),
+        }
+
     async def apost_attachments_folder(
-        self,
-        payload,
-        filter_=None,
-        expand=None,
-        top=None,
-        inlinecount=None,
-        orderby=None,
-        select=None,
-        skip=None,
+            self,
+            payload,
+            filter_=None,
+            expand=None,
+            top=None,
+            inlinecount=None,
+            orderby=None,
+            select=None,
+            skip=None,
     ):
         filters = {
             "$filter": filter_,
@@ -97,7 +114,7 @@ class Attachments:
             "$top": top,
             "$expand": expand,
         }
-        
+
         return await self.client.arequest(
             "POST",
             self.path + "@Folders",
@@ -106,16 +123,16 @@ class Attachments:
         )
 
     async def apatch_attachment_folder(
-        self,
-        id_: int,
-        payload: dict,
-        filter_=None,
-        expand=None,
-        top=None,
-        inlinecount=None,
-        orderby=None,
-        select=None,
-        skip=None,
+            self,
+            id_: int,
+            payload: dict,
+            filter_=None,
+            expand=None,
+            top=None,
+            inlinecount=None,
+            orderby=None,
+            select=None,
+            skip=None,
     ):
         """
         Updates a attachment by its ID with specific fields.
@@ -143,7 +160,7 @@ class Attachments:
             "$top": top,
             "$expand": expand,
         }
-        
+
         return await self.client.arequest(
             "PATCH",
             self.path + f"@Folders({id_})",
@@ -202,16 +219,16 @@ class Attachments:
             }
 
     async def apatch_attachment(
-        self,
-        id_: int,
-        payload: dict,
-        filter_=None,
-        expand=None,
-        top=None,
-        inlinecount=None,
-        orderby=None,
-        select=None,
-        skip=None,
+            self,
+            id_: int,
+            payload: dict,
+            filter_=None,
+            expand=None,
+            top=None,
+            inlinecount=None,
+            orderby=None,
+            select=None,
+            skip=None,
     ):
         """
         Updates a attachment by its ID with specific fields.
@@ -239,7 +256,7 @@ class Attachments:
             "$top": top,
             "$expand": expand,
         }
-        
+
         return await self.client.arequest(
             "PATCH",
             self.path + f"@Items({id_})",
